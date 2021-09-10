@@ -3,30 +3,41 @@ package io.dataease.controller.sys;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.github.xiaoymin.knife4j.annotations.ApiSupport;
 import io.dataease.auth.api.dto.CurrentUserDto;
+import io.dataease.base.domain.SysRole;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.PageUtils;
 import io.dataease.commons.utils.Pager;
 import io.dataease.controller.sys.base.BaseGridRequest;
+import io.dataease.controller.sys.request.LdapAddRequest;
 import io.dataease.controller.sys.request.SysUserCreateRequest;
 import io.dataease.controller.sys.request.SysUserPwdRequest;
 import io.dataease.controller.sys.request.SysUserStateRequest;
+import io.dataease.controller.sys.response.RoleUserItem;
 import io.dataease.controller.sys.response.SysUserGridResponse;
+import io.dataease.service.sys.SysRoleService;
 import io.dataease.service.sys.SysUserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
+import springfox.documentation.annotations.ApiIgnore;
+
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
 @Api(tags = "系统：用户管理")
+@ApiSupport(order = 220)
 @RequestMapping("/api/user")
 public class SysUserController {
 
     @Resource
     private SysUserService sysUserService;
+
+    @Resource
+    private SysRoleService sysRoleService;
 
     @ApiOperation("查询用户")
     @PostMapping("/userGrid/{goPage}/{pageSize}")
@@ -64,26 +75,27 @@ public class SysUserController {
         sysUserService.updateStatus(request);
     }
 
-    @ApiOperation("用户更新密码")
+    @ApiOperation("更新当前用户密码")
     @PostMapping("/updatePwd")
     public void updatePwd(@RequestBody SysUserPwdRequest request){
 
         sysUserService.updatePwd(request);
     }
-    @ApiOperation("管理员更新密码")
+    @ApiOperation("更新指定用户密码")
     @PostMapping("/adminUpdatePwd")
     public void adminUpdatePwd(@RequestBody SysUserPwdRequest request){
         sysUserService.adminUpdatePwd(request);
     }
 
 
-    @ApiOperation("个人信息")
+    @ApiOperation("当前用户信息")
     @PostMapping("/personInfo")
     public CurrentUserDto personInfo() {
         CurrentUserDto user = AuthUtils.getUser();
         return user;
     }
 
+    @ApiIgnore
     @ApiOperation("更新个人信息")
     @PostMapping("/updatePersonInfo")
     public void updatePersonInfo(@RequestBody SysUserCreateRequest request){
@@ -100,4 +112,34 @@ public class SysUserController {
             }
         });
     }
+
+    @ApiOperation("查询所有角色")
+    @PostMapping("/all")
+    public List<RoleUserItem> all(){
+        return sysRoleService.allRoles();
+    }
+
+
+
+    @ApiOperation("查询角色")
+    @PostMapping("/roleGrid/{goPage}/{pageSize}")
+    public Pager<List<SysRole>> roleGrid(@PathVariable int goPage, @PathVariable int pageSize, @RequestBody BaseGridRequest request) {
+        Page<Object> page = PageHelper.startPage(goPage, pageSize, true);
+        Pager<List<SysRole>> listPager = PageUtils.setPageInfo(page, sysRoleService.query(request));
+        return listPager;
+    }
+
+
+    @ApiOperation("同步用户")
+    @PostMapping("/sync")
+    public void importLdap(@RequestBody LdapAddRequest request) {
+        sysUserService.saveLdapUsers(request);
+    }
+
+    @ApiOperation("已同步用户")
+    @PostMapping("/existLdapUsers")
+    public List<String> getExistLdapUsers() {
+        return sysUserService.ldapUserNames();
+    }
+
 }

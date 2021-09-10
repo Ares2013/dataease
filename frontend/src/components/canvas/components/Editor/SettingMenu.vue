@@ -11,6 +11,7 @@
           <el-dropdown-item icon="el-icon-download" @click.native="bottomComponent">{{ $t('panel.bottomComponent') }}</el-dropdown-item>
           <el-dropdown-item icon="el-icon-arrow-up" @click.native="upComponent">{{ $t('panel.upComponent') }}</el-dropdown-item>
           <el-dropdown-item icon="el-icon-arrow-down" @click.native="downComponent">{{ $t('panel.downComponent') }}</el-dropdown-item>
+          <el-dropdown-item v-if="'view'===curComponent.type" icon="el-icon-link" @click.native="linkageSetting">{{ $t('panel.linkage_setting') }}</el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
     </div>
@@ -20,6 +21,7 @@
 <script>
 import { mapState } from 'vuex'
 import bus from '@/utils/bus'
+import { getViewLinkageGather } from '@/api/panel/linkage'
 
 export default {
   data() {
@@ -84,13 +86,13 @@ export default {
 
     paste() {
       this.$store.commit('paste', true)
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','paste')
     },
 
     deleteComponent() {
       this.deleteCurCondition()
       this.$store.commit('deleteComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','deleteComponent')
       this.$store.commit('setCurComponent', { component: null, index: null })
     },
 
@@ -103,22 +105,38 @@ export default {
 
     upComponent() {
       this.$store.commit('upComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','upComponent')
     },
 
     downComponent() {
       this.$store.commit('downComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','downComponent')
     },
 
     topComponent() {
       this.$store.commit('topComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','topComponent')
     },
 
     bottomComponent() {
       this.$store.commit('bottomComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','bottomComponent')
+    },
+    linkageSetting() {
+      debugger
+      // sourceViewId 也加入查询
+      const targetViewIds = this.componentData.filter(item => item.type === 'view' && item.propValue && item.propValue.viewId)
+        .map(item => item.propValue.viewId)
+
+      // 获取当前仪表板当前视图联动信息
+      const requestInfo = {
+        'panelId': this.$store.state.panel.panelInfo.id,
+        'sourceViewId': this.curComponent.propValue.viewId,
+        'targetViewIds': targetViewIds
+      }
+      getViewLinkageGather(requestInfo).then(rsp => {
+        this.$store.commit('setLinkageInfo', rsp.data)
+      })
     }
   }
 }

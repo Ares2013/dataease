@@ -4,21 +4,53 @@
       <el-form ref="colorForm" :model="colorForm" label-width="80px" size="mini" :disabled="param && !hasDataPermission('manage',param.privileges)">
         <div v-if="sourceType==='view' || sourceType==='panelEchart'">
           <el-form-item v-show="chart.type && !chart.type.includes('table') && !chart.type.includes('text')" :label="$t('chart.color_case')" class="form-item">
-            <el-select v-model="colorForm.value" :placeholder="$t('chart.pls_slc_color_case')" size="mini" @change="changeColorCase">
-              <el-option v-for="option in colorCases" :key="option.value" :label="option.name" :value="option.value" style="display: flex;align-items: center;">
-                <div style="float: left">
-                  <span v-for="(c,index) in option.colors" :key="index" :style="{width: '20px',height: '20px',float: 'left',backgroundColor: c}" />
+            <el-popover
+              placement="bottom"
+              width="400"
+              trigger="click"
+              :disabled="param && !hasDataPermission('manage',param.privileges)"
+            >
+              <div style="padding: 6px 10px;">
+                <div>
+                  <span class="color-label">{{ $t('chart.system_case') }}</span>
+                  <el-select v-model="colorForm.value" :placeholder="$t('chart.pls_slc_color_case')" size="mini" @change="changeColorOption">
+                    <el-option v-for="option in colorCases" :key="option.value" :label="option.name" :value="option.value" style="display: flex;align-items: center;">
+                      <div style="float: left">
+                        <span v-for="(c,index) in option.colors" :key="index" :style="{width: '20px',height: '20px',float: 'left',backgroundColor: c}" />
+                      </div>
+                      <span style="margin-left: 4px;">{{ option.name }}</span>
+                    </el-option>
+                  </el-select>
+                  <el-button size="mini" type="text" style="margin-left: 2px;" @click="resetCustomColor">{{ $t('commons.reset') }}</el-button>
                 </div>
-                <span style="margin-left: 4px;">{{ option.name }}</span>
-              </el-option>
-            </el-select>
+                <div style="display: flex;align-items: center;margin-top: 10px;">
+                  <span class="color-label">{{ $t('chart.custom_case') }}</span>
+                  <span>
+                    <el-radio-group v-model="customColor" class="color-type">
+                      <el-radio v-for="(c,index) in colorForm.colors" :key="index" :label="c" style="padding: 2px;" @change="switchColor(index)">
+                        <span :style="{width: '20px',height: '20px',display:'inline-block',backgroundColor: c}" />
+                      </el-radio>
+                    </el-radio-group>
+                  </span>
+                </div>
+                <div style="display: flex;align-items: center;margin-top: 10px;">
+                  <span class="color-label" />
+                  <span>
+                    <el-color-picker v-model="customColor" class="color-picker-style" @change="switchColorCase" />
+                  </span>
+                </div>
+              </div>
+              <div slot="reference" style="cursor: pointer;margin-top: 2px;width: 180px;">
+                <span v-for="(c,index) in colorForm.colors" :key="index" :style="{width: '20px',height: '20px',display:'inline-block',backgroundColor: c}" />
+              </div>
+            </el-popover>
           </el-form-item>
 
-          <el-form-item v-show="(chart.type && chart.type.includes('text')) || sourceType==='panelTable'" :label="$t('chart.dimension_color')" class="form-item">
-            <el-color-picker v-model="colorForm.dimensionColor" class="color-picker-style" @change="changeColorCase" />
-          </el-form-item>
           <el-form-item v-show="(chart.type && chart.type.includes('text')) || sourceType==='panelTable'" :label="$t('chart.quota_color')" class="form-item">
             <el-color-picker v-model="colorForm.quotaColor" class="color-picker-style" @change="changeColorCase" />
+          </el-form-item>
+          <el-form-item v-show="(chart.type && chart.type.includes('text')) || sourceType==='panelTable'" :label="$t('chart.dimension_color')" class="form-item">
+            <el-color-picker v-model="colorForm.dimensionColor" class="color-picker-style" @change="changeColorCase" />
           </el-form-item>
         </div>
         <div v-if="sourceType==='view' || sourceType==='panelTable'">
@@ -42,58 +74,6 @@
         </el-form-item>
       </el-form>
     </el-col>
-    <!--    <div style="width: 100%">-->
-    <!--      <el-popover-->
-    <!--        placement="right"-->
-    <!--        width="400"-->
-    <!--        trigger="click"-->
-    <!--      >-->
-    <!--        <el-col>-->
-    <!--          <el-form ref="colorForm" :model="colorForm" label-width="80px" size="mini">-->
-    <!--            <div v-if="sourceType==='view' || sourceType==='panelEchart'">-->
-    <!--              <el-form-item v-show="chart.type && !chart.type.includes('table') && !chart.type.includes('text')" :label="$t('chart.color_case')" class="form-item">-->
-    <!--                <el-select v-model="colorForm.value" :placeholder="$t('chart.pls_slc_color_case')" size="mini" @change="changeColorCase">-->
-    <!--                  <el-option v-for="option in colorCases" :key="option.value" :label="option.name" :value="option.value" style="display: flex;align-items: center;">-->
-    <!--                    <div style="float: left">-->
-    <!--                      <span v-for="(c,index) in option.colors" :key="index" :style="{width: '20px',height: '20px',float: 'left',backgroundColor: c}" />-->
-    <!--                    </div>-->
-    <!--                    <span style="margin-left: 4px;">{{ option.name }}</span>-->
-    <!--                  </el-option>-->
-    <!--                </el-select>-->
-    <!--              </el-form-item>-->
-
-    <!--              <el-form-item v-show="(chart.type && chart.type.includes('text')) || sourceType==='panelTable'" :label="$t('chart.dimension_color')" class="form-item">-->
-    <!--                <colorPicker v-model="colorForm.dimensionColor" style="margin-top: 6px;cursor: pointer;z-index: 1003;border: solid 1px black" @change="changeColorCase" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item v-show="(chart.type && chart.type.includes('text')) || sourceType==='panelTable'" :label="$t('chart.quota_color')" class="form-item">-->
-    <!--                <colorPicker v-model="colorForm.quotaColor" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeColorCase" />-->
-    <!--              </el-form-item>-->
-    <!--            </div>-->
-    <!--            <div v-if="sourceType==='view' || sourceType==='panelTable'">-->
-    <!--              <el-form-item v-show="(chart.type && chart.type.includes('table')) || sourceType==='panelTable'" :label="$t('chart.table_header_bg')" class="form-item">-->
-    <!--                <colorPicker v-model="colorForm.tableHeaderBgColor" style="margin-top: 6px;cursor: pointer;z-index: 1002;border: solid 1px black" @change="changeColorCase" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item v-show="(chart.type && chart.type.includes('table')) || sourceType==='panelTable'" :label="$t('chart.table_item_bg')" class="form-item">-->
-    <!--                <colorPicker v-model="colorForm.tableItemBgColor" style="margin-top: 6px;cursor: pointer;z-index: 1003;border: solid 1px black" @change="changeColorCase" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item v-show="(chart.type && chart.type.includes('table')) || sourceType==='panelTable'" :label="$t('chart.table_item_font_color')" class="form-item">-->
-    <!--                <colorPicker v-model="colorForm.tableFontColor" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeColorCase" />-->
-    <!--              </el-form-item>-->
-    <!--              &lt;!&ndash;              暂时不支持该功能&ndash;&gt;-->
-    <!--              &lt;!&ndash;              <el-form-item v-show="(chart.type && chart.type.includes('table')) || sourceType==='panelTable'" :label="$t('chart.stripe')" class="form-item">&ndash;&gt;-->
-    <!--              &lt;!&ndash;                <el-checkbox v-model="colorForm.tableStripe" @change="changeColorCase">{{ $t('chart.stripe') }}</el-checkbox>&ndash;&gt;-->
-    <!--              &lt;!&ndash;              </el-form-item>&ndash;&gt;-->
-    <!--            </div>-->
-
-    <!--            <el-form-item v-show="chart.type && !chart.type.includes('text')" :label="$t('chart.not_alpha')" class="form-item form-item-slider">-->
-    <!--              <el-slider v-model="colorForm.alpha" show-input :show-input-controls="false" input-size="mini" @change="changeColorCase" />-->
-    <!--            </el-form-item>-->
-    <!--          </el-form>-->
-    <!--        </el-col>-->
-
-    <!--        <el-button slot="reference" :disabled="param && !hasDataPermission('manage',param.privileges)" size="mini" class="shape-item">{{ $t('chart.color') }}<i class="el-icon-setting el-icon&#45;&#45;right" /></el-button>-->
-    <!--      </el-popover>-->
-    <!--    </div>-->
   </div>
 </template>
 
@@ -201,10 +181,18 @@ export default {
           colors: ['#00a3af', '#4da798', '#57baaa', '#62d0bd', '#6ee4d0', '#86e7d6', '#aeede1', '#bde1e6', '#e5e5e5']
         }
       ],
-      colorForm: JSON.parse(JSON.stringify(DEFAULT_COLOR_CASE))
+      colorForm: JSON.parse(JSON.stringify(DEFAULT_COLOR_CASE)),
+      customColor: null,
+      colorIndex: 0
     }
   },
   watch: {
+    'chart.id': {
+      handler: function() {
+        this.customColor = null
+        this.colorIndex = 0
+      }
+    },
     'chart': {
       handler: function() {
         this.init()
@@ -215,15 +203,26 @@ export default {
     this.init()
   },
   methods: {
-    changeColorCase() {
+    changeColorOption() {
       const that = this
       const items = this.colorCases.filter(ele => {
         return ele.value === that.colorForm.value
       })
-      const val = JSON.parse(JSON.stringify(this.colorForm))
-      val.value = items[0].value
-      val.colors = items[0].colors
-      this.$emit('onColorChange', val)
+      // const val = JSON.parse(JSON.stringify(this.colorForm))
+      // val.value = items[0].value
+      // val.colors = items[0].colors
+      // this.colorForm.value = items[0].value
+      this.colorForm.colors = JSON.parse(JSON.stringify(items[0].colors))
+
+      this.customColor = this.colorForm.colors[0]
+      this.colorIndex = 0
+
+      this.changeColorCase()
+    },
+    changeColorCase() {
+      this.$emit('onColorChange', this.colorForm)
+      // this.customColor = null
+      // this.colorIndex = 0
     },
     init() {
       const chart = JSON.parse(JSON.stringify(this.chart))
@@ -236,8 +235,24 @@ export default {
         }
         if (customAttr.color) {
           this.colorForm = customAttr.color
+          if (!this.customColor) {
+            this.customColor = this.colorForm.colors[0]
+            this.colorIndex = 0
+          }
         }
       }
+    },
+
+    switchColor(index) {
+      this.colorIndex = index
+    },
+    switchColorCase() {
+      this.colorForm.colors[this.colorIndex] = this.customColor
+      this.$emit('onColorChange', this.colorForm)
+    },
+
+    resetCustomColor() {
+      this.changeColorOption()
     }
   }
 }
@@ -271,5 +286,24 @@ export default {
   .color-picker-style{
     cursor: pointer;
     z-index: 1003;
+  }
+  .color-label{
+    display: inline-block;
+    width: 60px;
+  }
+
+  .color-type>>>.el-radio__input{
+    display: none;
+  }
+  .el-radio{
+    margin:0 2px 0 0!important;
+    border: 1px solid transparent;
+  }
+  .el-radio>>>.el-radio__label{
+    padding-left: 0;
+  }
+
+  .el-radio.is-checked{
+    border: 1px solid #0a7be0;
   }
 </style>

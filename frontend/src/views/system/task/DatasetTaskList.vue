@@ -1,7 +1,7 @@
 <template>
   <el-col>
-    <el-row style="margin-top: 10px;">
-      <complex-table :data="data" :columns="columns" local-key="datasetTask" :search-config="searchConfig" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
+    <el-row style="margin-top: 10px;" v-loading="$store.getters.loadingMap[$store.getters.currentPath]">
+      <complex-table :data="data" :columns="columns" local-key="datasetTask" :transCondition="transCondition" :search-config="searchConfig" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
         <template #toolbar>
           <el-button icon="el-icon-circle-plus-outline" @click="selectDataset">{{ $t('dataset.task.create') }}</el-button>
         </template>
@@ -47,7 +47,7 @@
 
         <el-table-column prop="nextExecTime" :label="$t('dataset.task.next_exec_time')">
           <template slot-scope="scope">
-            <span v-if="scope.row.nextExecTime && scope.row.nextExecTime !== -1 && scope.row.rate !== 'SIMPLE'">
+            <span v-if="scope.row.nextExecTime && scope.row.nextExecTime !== -1 && scope.row.rate !== 'SIMPLE'&& scope.row.status !== 'Pending'">
               {{ scope.row.nextExecTime | timestampFormatDate }}
             </span>
             <span v-if="!scope.row.nextExecTime || scope.row.rate === 'SIMPLE'" />
@@ -168,7 +168,7 @@
 
     <!--添加任务-选择数据集-->
     <el-dialog v-dialogDrag :title="$t('dataset.task.create')" :visible="selectDatasetFlag" :show-close="false" width="70%" class="dialog-css" :destroy-on-close="true">
-      <table-selector @getTable="getTable" :mode="1" :customType=customType  showMode="datasetTask"/>
+      <table-selector @getTable="getTable" privileges="manage" :mode="1" :customType=customType  showMode="datasetTask"/>
       <div slot="footer" class="dialog-footer">
         <el-button size="mini" @click="closeCreateTask">{{ $t('chart.cancel') }}</el-button>
         <el-button type="primary" size="mini" :disabled="!table.id" @click="create(undefined)">{{ $t('chart.confirm') }}</el-button>
@@ -215,12 +215,17 @@ import 'codemirror/addon/hint/sql-hint'
 import 'codemirror/addon/hint/show-hint'
 import cron from '@/components/cron/cron'
 import TableSelector from '@/views/chart/view/TableSelector'
+import { hasDataPermission } from '@/utils/permission'
 
 export default {
   name: 'DatasetTaskList',
   components: { ComplexTable, cron, codemirror, TableSelector },
   props: {
     param: {
+      type: Object,
+      default: null
+    },
+    transCondition: {
       type: Object,
       default: null
     }
@@ -251,7 +256,7 @@ export default {
           label: this.$t('dataset.task.exec'), icon: 'el-icon-video-play', type: 'success', click: this.execTask, disabled: this.disableExec
         },
         {
-          label: this.$t('commons.delete'), icon: 'el-icon-delete', type: 'danger', click: this.deleteTask
+          label: this.$t('commons.delete'), icon: 'el-icon-delete', type: 'danger', click: this.deleteTask, disabled: this.disableDelete
         }
       ],
       searchConfig: {
@@ -259,8 +264,9 @@ export default {
         useComplexSearch: true,
         quickPlaceholder: this.$t('dataset.task.search_by_name'),
         components: [
+          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'DeComplexInput'},
+          { field: 'dataset_table_task.id', label: this.$t('dataset.task_id'), component: 'FuComplexInput' },
           { field: 'dataset_table.name', label: this.$t('dataset.name'), component: 'DeComplexInput' },
-          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'DeComplexInput' },
           { field: 'dataset_table_task.status', label: this.$t('dataset.task.task_status'), component: 'FuComplexSelect',
             options: [{ label: this.$t('dataset.task.stopped'), value: 'Stopped' }, { label: this.$t('dataset.task.underway'), value: 'Underway' }, { label: this.$t('dataset.task.pending'), value: 'Pending' }, { label: this.$t('dataset.underway'), value: 'Exec' }], multiple: false },
           { field: 'dataset_table_task.last_exec_status', label: this.$t('dataset.task.last_exec_status'), component: 'FuComplexSelect', options: [{ label: this.$t('dataset.completed'), value: 'Completed' }, { label: this.$t('dataset.underway'), value: 'Underway' }, { label: this.$t('dataset.error'), value: 'Error' }], multiple: false }
@@ -343,22 +349,9 @@ export default {
     }
   },
   created() {
-    if (this.param == null) {
-      this.last_condition = {}
-      this.search()
-    } else {
-      this.last_condition = {
-        'dataset_table_task.name': {
-          field: 'dataset_table_task.name',
-          operator: 'eq',
-          value: this.param.name
-        }
-      }
-      this.search(this.last_condition)
-    }
     this.timer = setInterval(() => {
       this.search(this.last_condition, false)
-    }, 5000)
+    }, 10000)
   },
   beforeDestroy() {
     clearInterval(this.timer)
@@ -423,15 +416,21 @@ export default {
       this.update_task = true
     },
     changeTaskStatus(task) {
-      const param = task
+      let param = JSON.parse(JSON.stringify(task));
       param.status = task.status === 'Underway' ? 'Pending' : 'Underway'
-      post('/dataset/task/updateStatus', task).then(response => {
-        task.status = param.status
-        this.$message({
-          message: this.$t('dataset.task.change_success'),
-          type: 'success',
-          showClose: true
-        })
+      post('/dataset/task/updateStatus', param).then(response => {
+        if(response.success){
+          task.status = param.status
+          this.$message({
+            message: this.$t('dataset.task.change_success'),
+            type: 'success',
+            showClose: true
+          })
+        }else {
+          this.search(this.last_condition, false)
+        }
+      }).catch(() => {
+        this.search(this.last_condition, false)
       })
     },
     execTask(task) {
@@ -559,10 +558,14 @@ export default {
       this.taskForm.cron = val
     },
     disableEdit(task) {
-      return task.rate === 'SIMPLE' || task.status === 'Stopped'
+      return task.rate === 'SIMPLE' || task.status === 'Stopped' || !hasDataPermission('manage',task.privileges)
     },
     disableExec(task) {
-      return task.status === 'Stopped' || task.status === 'Pending' || task.rate === 'SIMPLE'
+      return task.status === 'Stopped' || task.status === 'Pending' || task.rate === 'SIMPLE' || !hasDataPermission('manage',task.privileges)
+    },
+    disableDelete(task) {
+      return false;
+      // !hasDataPermission('manage',task.privileges)
     },
     deleteTask(task) {
       this.$confirm(this.$t('dataset.confirm_delete'), this.$t('dataset.tips'), {
@@ -628,12 +631,7 @@ export default {
             }
             this.incrementalConfig.tableId = task.tableId
           }
-
-          let startTime = new Date(task.startTime).getTime()
-          if(startTime < new Date().getTime()){
-            startTime = new Date().getTime()
-          }
-          task.startTime = startTime
+          task.startTime = new Date(task.startTime).getTime()
           task.endTime = new Date(task.endTime).getTime()
           const form = JSON.parse(JSON.stringify(task))
           form.extraData = JSON.stringify(form.extraData)

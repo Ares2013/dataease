@@ -8,12 +8,21 @@
     <complex-table
       :data="data"
       :columns="columns"
+      :hide-columns="true"
       :pagination-config="paginationConfig"
+      :search-config="searchConfig"
       @select="select"
       @search="search"
+      @selection-change="handleSelectionChange"
       @sort-change="sortChange"
     >
-
+      <template #toolbar>
+        <el-button :disabled="multipleSelection.length === 0" @click="deleteBatch">{{ $t('commons.delete') }}</el-button>
+      </template>
+      <el-table-column
+        type="selection"
+        width="55"
+      />
       <el-table-column prop="content" :label="$t('webmsg.content')">
         <template slot-scope="scope">
 
@@ -57,9 +66,10 @@
 
 import LayoutContent from '@/components/business/LayoutContent'
 import ComplexTable from '@/components/business/complex-table'
-import { query } from '@/api/system/msg'
+import { query, batchDelete } from '@/api/system/msg'
 import { msgTypes, getTypeName, loadMsgTypes } from '@/utils/webMsg'
 import { addOrder, formatOrders } from '@/utils/index'
+import { mapGetters } from 'vuex'
 export default {
   components: {
     LayoutContent,
@@ -84,8 +94,18 @@ export default {
         currentPage: 1,
         pageSize: 10,
         total: 0
+      },
+      multipleSelection: [],
+      searchConfig: {
+        useQuickSearch: false,
+        useComplexSearch: false
       }
     }
+  },
+  computed: {
+    ...mapGetters([
+      'permission_routes'
+    ])
   },
   mounted() {
     this.search()
@@ -125,7 +145,21 @@ export default {
     },
     toDetail(row) {
       const param = { ...{ msgNotification: true, msgType: row.typeId, sourceParam: row.param }}
-      this.$router.push({ name: row.router, params: param })
+      // this.$router.push({ name: row.router, params: param })
+      if (this.hasPermissionRoute(row.router)) {
+        this.$router.push({ name: row.router, params: param })
+        return
+      }
+      this.$warning(this.$t('commons.no_target_permission'))
+    },
+    hasPermissionRoute(name, permission_routes) {
+      permission_routes = permission_routes || this.permission_routes
+      for (let index = 0; index < permission_routes.length; index++) {
+        const route = permission_routes[index]
+        if (route.name && route.name === name) return true
+        if (route.children && this.hasPermissionRoute(name, route.children)) return true
+      }
+      return false
     },
     sortChange({ column, prop, order }) {
       this.orderConditions = []
@@ -144,6 +178,20 @@ export default {
       }
       addOrder({ field: prop, value: order }, this.orderConditions)
       this.search()
+    },
+    deleteBatch() {
+      if (this.multipleSelection.length === 0) {
+        this.$warning(this.$t('webmsg.please_select'))
+        return
+      }
+      const param = this.multipleSelection.map(item => item.msgId)
+      batchDelete(param).then(res => {
+        this.$success(this.$t('commons.delete_success'))
+        this.search()
+      })
+    },
+    handleSelectionChange(val) {
+      this.multipleSelection = val
     }
 
   }
@@ -162,8 +210,8 @@ export default {
 
   >>>.el-radio-button__orig-radio:checked+.el-radio-button__inner {
     color: #fff;
-    background-color: #0a7be0;
-    border-color: #0a7be0;
+    /* background-color: #0a7be0;
+    border-color: #0a7be0; */
     -webkit-box-shadow: 0px 0 0 0 #0a7be0;
     box-shadow: 0px 0 0 0 #0a7be0;
   }

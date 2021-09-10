@@ -3,7 +3,6 @@ package io.dataease.provider.doris;
 import io.dataease.provider.SQLConstants;
 
 import static io.dataease.datasource.constants.DatasourceTypes.doris;
-import static io.dataease.datasource.constants.DatasourceTypes.mysql;
 
 /**
  * @Author gin
@@ -19,6 +18,8 @@ public class DorisConstants extends SQLConstants {
     public static final String DATE_FORMAT = "DATE_FORMAT(%s,'%s')";
 
     public static final String FROM_UNIXTIME = "FROM_UNIXTIME(%s,'%s')";
+
+    public static final String STR_TO_DATE = "STR_TO_DATE(%s,'%s')";
 
     public static final String CAST = "CAST(%s AS %s)";
 
@@ -41,4 +42,6 @@ public class DorisConstants extends SQLConstants {
     public static final String BRACKETS = "(%s)";
 
     public static final String ROUND = "ROUND(%s,%s)";
+
+    public static final String VARCHAR = "VARCHAR";
 }

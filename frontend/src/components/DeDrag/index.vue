@@ -10,7 +10,8 @@
         [classNameResizable]: resizable,
         [classNameRotating]: rotating,
         [classNameRotatable]: rotatable,
-        [classNameMouseOn]: mouseOn || active
+        [classNameMouseOn]: mouseOn || active,
+        ['linkageSetting']:linkageActive
       },
       className
     ]"
@@ -19,9 +20,7 @@
     @mouseenter="enter"
     @mouseleave="leave"
   >
-    <setting-menu style="right:5px;position: absolute;z-index: 2">
-      <i slot="icon" class="icon iconfont icon-shezhi" />
-    </setting-menu>
+    <edit-bar v-if="active||linkageSettingStatus" style="transform: translateZ(10px)" :active-model="'edit'" :element="element" @showViewDetails="showViewDetails" />
     <div
       v-for="(handlei, indexi) in actualHandles"
       :key="indexi"
@@ -46,11 +45,12 @@ let eventsFor = events.mouse
 import eventBus from '@/components/canvas/utils/eventBus'
 import { mapState } from 'vuex'
 import SettingMenu from '@/components/canvas/components/Editor/SettingMenu'
+import EditBar from '@/components/canvas/components/Editor/EditBar'
 
 export default {
   replace: true,
   name: 'VueDragResizeRotate',
-  components: { SettingMenu },
+  components: { EditBar },
   props: {
     className: {
       type: String,
@@ -311,6 +311,11 @@ export default {
     changeStyle: {
       require: true,
       type: Object
+    },
+    // 联动设置
+    linkageActive: {
+      type: Boolean,
+      default: false
     }
   },
   data: function() {
@@ -464,7 +469,8 @@ export default {
       'curComponent',
       'editor',
       'curCanvasScale',
-      'canvasStyleData'
+      'canvasStyleData',
+      'linkageSettingStatus'
     ])
   },
   watch: {
@@ -623,7 +629,7 @@ export default {
     elementMouseDown(e) {
       // private 设置当前组件数据及状态
       this.$store.commit('setClickComponentStatus', true)
-      if (this.element.component !== 'v-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-number-range') {
+      if (this.element.component !== 'v-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-select-grid' && this.element.component !== 'de-number-range' && this.element.component !== 'de-date') {
         e.preventDefault()
       }
       // 阻止冒泡事件
@@ -1149,7 +1155,9 @@ export default {
         this.resizing = false
         await this.conflictCheck()
         this.$emit('refLineParams', refLine)
-        this.$emit('resizestop', this.left, this.top, this.width, this.height)
+        // this.$emit('resizestop', this.left, this.top, this.width, this.height)
+        // private
+        // this.$emit('resizestop')
       }
       if (this.dragging) {
         this.dragging = false
@@ -1168,7 +1176,7 @@ export default {
       if (this.canvasStyleData.auxiliaryMatrix) {
         this.recordMatrixCurStyle()
       }
-      this.hasMove && this.$store.commit('recordSnapshot')
+      this.hasMove && this.$store.commit('recordSnapshot', 'handleUp')
       // 记录snapshot后 移动已记录设置为false
       this.hasMove = false
 
@@ -1463,7 +1471,7 @@ export default {
 
     // 记录当前样式 矩阵处理
     recordMatrixCurStyle() {
-      debugger
+      // debugger
       const left = Math.round(this.left / this.curCanvasScale.matrixStyleWidth) * this.curCanvasScale.matrixStyleWidth
       const top = Math.round(this.top / this.curCanvasScale.matrixStyleHeight) * this.curCanvasScale.matrixStyleHeight
       const width = Math.round(this.width / this.curCanvasScale.matrixStyleWidth) * this.curCanvasScale.matrixStyleWidth
@@ -1478,6 +1486,12 @@ export default {
       style.rotate = this.rotate
       // this.hasMove = true
       this.$store.commit('setShapeStyle', style)
+
+      // resize
+      const self = this
+      setTimeout(function() {
+        self.$emit('resizestop')
+      }, 200)
     },
     mountedFunction() {
       // private 冲突检测 和水平设计值保持一致
@@ -1540,6 +1554,9 @@ export default {
       removeEvent(document.documentElement, 'mouseup', this.handleUp)
       removeEvent(document.documentElement, 'touchend touchcancel', this.deselect)
       removeEvent(window, 'resize', this.checkParentSize)
+    },
+    showViewDetails() {
+      this.$emit('showViewDetails')
     }
   }
 
@@ -1549,6 +1566,7 @@ export default {
 .vdr {
   touch-action: none;
   position: absolute;
+  transform-style:preserve-3d;
   border: 1px
 }
 
@@ -1628,26 +1646,30 @@ export default {
   user-select: none;
 }
 
-.mouseOn >>> .icon-shezhi{
-  z-index: 2;
-  display:block!important;
-}
-.vdr > i{
-  right: 5px;
-  color: gray;
-  position: absolute;
+.linkageSetting{
+  opacity: 0.5;
 }
 
-.vdr >>> i:hover {
-  color: red;
-}
+/*.mouseOn >>> .icon-shezhi{*/
+/*  z-index: 2;*/
+/*  display:block!important;*/
+/*}*/
+/*.vdr > i{*/
+/*  right: 5px;*/
+/*  color: gray;*/
+/*  position: absolute;*/
+/*}*/
 
-.vdr:hover >>> i {
-  z-index: 2;
-  display:block;
-}
+/*.vdr >>> i:hover {*/
+/*  color: red;*/
+/*}*/
 
-.vdr>>>.icon-shezhi {
-  display:none
-}
+/*.vdr:hover >>> i {*/
+/*  z-index: 2;*/
+/*  display:block;*/
+/*}*/
+
+/*.vdr>>>.icon-shezhi {*/
+/*  display:none*/
+/*}*/
 </style>

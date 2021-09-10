@@ -2,7 +2,6 @@ package io.dataease.auth.service.impl;
 
 import io.dataease.auth.service.ExtAuthService;
 import io.dataease.base.domain.SysAuth;
-import io.dataease.base.domain.SysAuthExample;
 import io.dataease.base.mapper.SysAuthMapper;
 import io.dataease.base.mapper.ext.ExtAuthMapper;
 import io.dataease.commons.model.AuthURD;
@@ -43,20 +42,22 @@ public class ExtAuthServiceImpl implements ExtAuthService {
     @Override
     public AuthURD resourceTarget(String resourceId) {
         AuthURD authURD = new AuthURD();
-        SysAuthExample example = new SysAuthExample();
+        /*SysAuthExample example = new SysAuthExample();
         example.createCriteria().andAuthSourceEqualTo(resourceId);
-        List<SysAuth> sysAuths = sysAuthMapper.selectByExample(example);
+        List<SysAuth> sysAuths = sysAuthMapper.selectByExample(example);*/
+        List<SysAuth> sysAuths = extAuthMapper.queryByResource(resourceId);
+
         Map<String, List<SysAuth>> authMap = sysAuths.stream().collect(Collectors.groupingBy(SysAuth::getAuthTargetType));
         if (!CollectionUtils.isEmpty(authMap.get("user"))) {
             authURD.setUserIds(authMap.get("user").stream().map(item -> Long.parseLong(item.getAuthTarget())).collect(Collectors.toList()));
         }
 
         if (!CollectionUtils.isEmpty(authMap.get("role"))) {
-            authURD.setUserIds(authMap.get("role").stream().map(item -> Long.parseLong(item.getAuthTarget())).collect(Collectors.toList()));
+            authURD.setRoleIds(authMap.get("role").stream().map(item -> Long.parseLong(item.getAuthTarget())).collect(Collectors.toList()));
         }
 
         if (!CollectionUtils.isEmpty(authMap.get("dept"))) {
-            authURD.setUserIds(authMap.get("dept").stream().map(item -> Long.parseLong(item.getAuthTarget())).collect(Collectors.toList()));
+            authURD.setDeptIds(authMap.get("dept").stream().map(item -> Long.parseLong(item.getAuthTarget())).collect(Collectors.toList()));
         }
         return authURD;
     }

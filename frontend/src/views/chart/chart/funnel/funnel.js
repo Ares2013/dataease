@@ -31,18 +31,18 @@ export function baseFunnelOption(chart_option, chart) {
         chart_option.series[0].label = customAttr.label
       }
       const valueArr = chart.data.series[0].data
-      // max value
-      chart_option.series[0].max = Math.max.apply(Math, valueArr)
       for (let i = 0; i < valueArr.length; i++) {
-        const y = {
-          name: chart.data.x[i],
-          value: valueArr[i]
-        }
+        // const y = {
+        //   name: chart.data.x[i],
+        //   value: valueArr[i]
+        // }
+        const y = valueArr[i]
+        y.name = chart.data.x[i]
         // color
         y.itemStyle = {
           color: hexColorToRGBA(customAttr.color.colors[i % 9], customAttr.color.alpha)
         }
-        y.type = 'funnel'
+        // y.type = 'funnel'
         chart_option.series[0].data.push(y)
       }
     }

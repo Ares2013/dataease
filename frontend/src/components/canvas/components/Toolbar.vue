@@ -1,6 +1,17 @@
 <template>
   <div>
-    <div class="toolbar">
+    <!--    linkageActiveStatus:{{ linkageActiveStatus }}-->
+    <div v-if="linkageSettingStatus" class="toolbar">
+      <span style="float: right;">
+        <el-button size="mini" @click="saveLinkage">
+          {{ $t('commons.confirm') }}
+        </el-button>
+        <el-button size="mini" @click="cancelLinkage">
+          {{ $t('commons.cancel') }}
+        </el-button>
+      </span>
+    </div>
+    <div v-else class="toolbar">
 
       <div class="canvas-config" style="margin-right: 10px">
         <el-switch v-model="canvasStyleData.auxiliaryMatrix" :width="35" name="auxiliaryMatrix" />
@@ -65,10 +76,10 @@
     <!--关闭弹框-->
     <el-dialog :visible.sync="closePanelVisible" :title="$t('panel.panel_save_tips')" :show-close="false" width="30%" class="dialog-css">
       <el-row style="height: 20px">
-        <el-col :span="6">
+        <el-col :span="4">
           <svg-icon icon-class="warn-tre" style="width: 20px;height: 20px;float: right" />
         </el-col>
-        <el-col :span="16">
+        <el-col :span="20">
           <span style="font-size: 13px;margin-left: 10px;font-weight: bold;line-height: 20px">{{ $t('panel.panel_save_warn_tips') }}</span>
         </el-col>
       </el-row>
@@ -90,7 +101,9 @@ import { commonStyle, commonAttr } from '@/components/canvas/custom-component/co
 import eventBus from '@/components/canvas/utils/eventBus'
 import { deepCopy } from '@/components/canvas/utils/utils'
 import { panelSave } from '@/api/panel/panel'
+import { saveLinkage, getPanelAllLinkageInfo } from '@/api/panel/linkage'
 import bus from '@/utils/bus'
+
 import {
   DEFAULT_COMMON_CANVAS_STYLE_STRING
 } from '@/views/panel/panel'
@@ -125,7 +138,10 @@ export default {
     'curComponent',
     'changeTimes',
     'snapshotIndex',
-    'lastSaveSnapshotIndex'
+    'lastSaveSnapshotIndex',
+    'linkageSettingStatus',
+    'curLinkageView',
+    'targetLinkageInfo'
   ]),
 
   created() {
@@ -198,12 +214,12 @@ export default {
 
     compose() {
       this.$store.commit('compose')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','compose')
     },
 
     decompose() {
       this.$store.commit('decompose')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','decompose')
     },
 
     undo() {
@@ -251,7 +267,7 @@ export default {
             }
           })
 
-          this.$store.commit('recordSnapshot')
+          this.$store.commit('recordSnapshot','handleFileChange')
         }
 
         img.src = fileResult
@@ -266,6 +282,9 @@ export default {
     },
 
     save(withClose) {
+      // 清理联动信息
+      this.$store.commit('clearPanelLinkageInfo')
+
       // 保存到数据库
       const requestInfo = {
         id: this.$store.state.panel.panelInfo.id,
@@ -287,7 +306,7 @@ export default {
     clearCanvas() {
       this.$store.commit('setComponentData', [])
       this.$store.commit('setCanvasStyle', DEFAULT_COMMON_CANVAS_STYLE_STRING)
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot','clearCanvas')
     },
 
     handlePreviewChange() {
@@ -302,6 +321,58 @@ export default {
     },
     closeNotSave() {
       this.close()
+    },
+    saveLinkage() {
+      // 字段检查
+      // let checkCount = 0
+      for (const key in this.targetLinkageInfo) {
+        let subCheckCount = 0
+        const linkageInfo = this.targetLinkageInfo[key]
+        const linkageFields = linkageInfo['linkageFields']
+        if (linkageFields) {
+          linkageFields.forEach(function(linkage) {
+            if (!(linkage.sourceField && linkage.targetField)) {
+              subCheckCount++
+            }
+          })
+        }
+
+        if (subCheckCount > 0) {
+          this.$message({
+            message: this.$t('chart.datalist') + '【' + linkageInfo.targetViewName + '】' + this.$t('panel.exit_un_march_linkage_field'),
+            type: 'error',
+            showClose: true
+          })
+          return
+        }
+      }
+      // if (checkCount > 0) {
+      //   this.$message({
+      //     message: this.$t('panel.exit_un_march_linkage_field'),
+      //     type: 'error',
+      //     showClose: true
+      //   })
+      //   return
+      // }
+
+      const request = {
+        panelId: this.$store.state.panel.panelInfo.id,
+        sourceViewId: this.curLinkageView.propValue.viewId,
+        linkageInfo: this.targetLinkageInfo
+      }
+      saveLinkage(request).then(rsp => {
+        // 刷新联动信息
+        getPanelAllLinkageInfo(this.$store.state.panel.panelInfo.id).then(rsp => {
+          this.$store.commit('setNowPanelTrackInfo', rsp.data)
+        })
+        this.cancelLinkageSettingStatus()
+      })
+    },
+    cancelLinkage() {
+      this.cancelLinkageSettingStatus()
+    },
+    cancelLinkageSettingStatus() {
+      this.$store.commit('clearLinkageSettingInfo')
     }
   }
 }

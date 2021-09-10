@@ -77,7 +77,11 @@ export default {
         const titleWidth = this.$refs.deTitle.offsetWidth
         const deContentContainer = this.$refs.deContentContainer
         this.$nextTick(() => {
-          if (height < 75) {
+          let min = 75
+          if (this.element.component === 'de-number-range') {
+            min = 105
+          }
+          if (height < min) {
             // console.log(titleWidth)
             this.mainClass = 'condition-main-line'
             deContentContainer && (deContentContainer.style.inset = '0 0 0 ' + (titleWidth + 15) + 'px')
@@ -121,6 +125,8 @@ export default {
   .condition-title-absolute {
     inset: 0px 0px;
     position: absolute;
+    top: 15px;
+    left: 4px;
   }
 
   .span-container {
@@ -151,8 +157,7 @@ export default {
   }
   .first-element-contaner {
       width: calc(100% - 10px);
-      background: #fff;
-      border: 1px solid #d7dae2;
+      background: initial;
       position:absolute;
       bottom: 5px;
       margin: 0 4px;
@@ -161,6 +166,8 @@ export default {
       }
   }
   .first-element-grid-contaner {
+      background: #fff;
+      border: 1px solid #d7dae2;
       top: 5px;
   }
   .condition-main-line {

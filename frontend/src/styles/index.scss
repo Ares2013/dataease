@@ -10,7 +10,6 @@
 @import '~umy-ui/lib/theme-chalk/index.css';
 // 引入样式
 @import './deicon/iconfont.css';
-// @import '../metersphere/common/css/index.css';
 
 
 body {
@@ -235,6 +234,15 @@ div:focus {
   div.el-input-group__append {
     width: 10% !important;
   }
+  .de-select-grid-class {
+    .list {
+      position: relative !important;
+      height: 200px !important;
+      overflow-y: scroll !important;
+      top: 0px !important;
+    }
+  }
+
 }
 
 %field-icon {
@@ -268,6 +276,14 @@ div:focus {
   color: #999999;
   margin: 0 2px 1px 0;
 }
+
+.ds-icon-pdf {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  color: #0a7be0;
+}
+
 
 .ds-icon-scene {
   width: 13px;
@@ -340,4 +356,8 @@ div:focus {
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
+}
+
+.el-color-dropdown__link-btn {
+  display: none!important;
 }

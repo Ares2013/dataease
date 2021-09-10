@@ -10,10 +10,11 @@
         <svg-icon v-if="item.sort === 'desc'" icon-class="sort-desc" class-name="field-icon-sort" />
       </span>
       <span class="item-span-style" :title="item.name">{{ item.name }}</span>
+      <span v-if="item.summary" class="summary-span">{{ $t('chart.'+item.summary) }}</span>
     </el-tag>
     <el-dropdown v-else trigger="click" size="mini" @command="clickItem">
       <span class="el-dropdown-link">
-        <el-tag size="small" class="item-axis" :type="item.groupType === 'd'?'':'success'">
+        <el-tag size="small" class="item-axis" :type="item.groupType === 'q'?'success':''">
           <span style="float: left">
             <svg-icon v-if="item.deType === 0" icon-class="field_text" class="field-icon-text" />
             <svg-icon v-if="item.deType === 1" icon-class="field_time" class="field-icon-time" />
@@ -23,16 +24,38 @@
             <svg-icon v-if="item.sort === 'desc'" icon-class="sort-desc" class-name="field-icon-sort" />
           </span>
           <span class="item-span-style" :title="item.name">{{ item.name }}</span>
+          <span v-if="item.summary" class="summary-span">{{ $t('chart.'+item.summary) }}</span>
           <i class="el-icon-arrow-down el-icon--right" style="position: absolute;top: 6px;right: 10px;" />
         </el-tag>
         <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item>
+          <el-dropdown-item v-show="conf && conf.includes('summary')">
+            <el-dropdown placement="right-start" size="mini" style="width: 100%" @command="summary">
+              <span class="el-dropdown-link inner-dropdown-menu">
+                <span>
+                  <i class="el-icon-notebook-2" />
+                  <span>{{ $t('chart.summary') }}</span>
+                  <span class="summary-span-item">({{ $t('chart.'+item.summary) }})</span>
+                </span>
+                <i class="el-icon-arrow-right el-icon--right" />
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item v-if="item.id === 'count' || item.deType === 0 || item.deType === 1" :command="beforeSummary('count')">{{ $t('chart.count') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('sum')">{{ $t('chart.sum') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('avg')">{{ $t('chart.avg') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('max')">{{ $t('chart.max') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('min')">{{ $t('chart.min') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('stddev_pop')">{{ $t('chart.stddev_pop') }}</el-dropdown-item>
+                <el-dropdown-item v-if="item.id !== 'count' && item.deType !== 0 && item.deType !== 1" :command="beforeSummary('var_pop')">{{ $t('chart.var_pop') }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </el-dropdown-item>
+          <el-dropdown-item v-show="conf && conf.includes('sort')">
             <el-dropdown placement="right-start" size="mini" style="width: 100%" @command="sort">
               <span class="el-dropdown-link inner-dropdown-menu">
                 <span>
                   <i class="el-icon-sort" />
                   <span>{{ $t('chart.sort') }}</span>
-                  <span class="summary-span">({{ $t('chart.'+item.sort) }})</span>
+                  <span class="summary-span-item">({{ $t('chart.'+item.sort) }})</span>
                 </span>
                 <i class="el-icon-arrow-right el-icon--right" />
               </span>
@@ -66,6 +89,10 @@ export default {
     },
     index: {
       type: Number,
+      required: true
+    },
+    conf: {
+      type: String,
       required: true
     }
   },
@@ -103,6 +130,16 @@ export default {
         type: type
       }
     },
+    summary(param) {
+      // console.log(param)
+      this.item.summary = param.type
+      this.$emit('onItemChange', this.item)
+    },
+    beforeSummary(type) {
+      return {
+        type: type
+      }
+    },
     removeItem() {
       this.item.index = this.index
       this.$emit('onItemRemove', this.item)
@@ -134,11 +171,6 @@ export default {
     font-size: 12px;
   }
 
-  .summary-span{
-    margin-left: 4px;
-    color: #878d9f;;
-  }
-
   .inner-dropdown-menu{
     display: flex;
     justify-content: space-between;
@@ -148,9 +180,21 @@ export default {
 
   .item-span-style{
     display: inline-block;
-    width: 100px;
+    width: 80px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  .summary-span-item{
+    margin-left: 4px;
+    color: #878d9f;
+  }
+
+  .summary-span{
+    margin-left: 4px;
+    color: #878d9f;
+    position: absolute;
+    right: 30px;
   }
 </style>

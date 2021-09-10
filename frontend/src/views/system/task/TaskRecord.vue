@@ -1,7 +1,7 @@
 <template>
   <el-col>
-    <el-row style="margin-top: 10px;">
-      <complex-table :data="data" :columns="columns" local-key="datasetTaskRecord" :search-config="searchConfig" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
+    <el-row style="margin-top: 10px;" v-loading="$store.getters.loadingMap[$store.getters.currentPath]">
+      <complex-table :data="data" :columns="columns" local-key="datasetTaskRecord" :search-config="searchConfig" :transCondition="transCondition" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
         <el-table-column prop="name" :label="$t('dataset.task_name')">
           <template slot-scope="scope">
             <span>
@@ -56,12 +56,17 @@ import ComplexTable from '@/components/business/complex-table'
 import { formatCondition, formatQuickCondition, addOrder, formatOrders } from '@/utils/index'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import { post } from '@/api/dataset/dataset'
+import {loadMenus} from "@/permission";
 
 export default {
   name: 'TaskRecord',
   components: { ComplexTable },
   props: {
     param: {
+      type: Object,
+      default: null
+    },
+    transCondition: {
       type: Object,
       default: null
     }
@@ -81,7 +86,8 @@ export default {
         useComplexSearch: true,
         quickPlaceholder: this.$t('dataset.task.search_by_name'),
         components: [
-          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'DeComplexInput' },
+          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'FuComplexInput' },
+          { field: 'dataset_table_task.id', label: this.$t('dataset.task_id'), component: 'FuComplexInput' },
           { field: 'dataset_table.name', label: this.$t('dataset.name'), component: 'DeComplexInput' },
           { field: 'dataset_table_task_log.status', label: this.$t('commons.status'), component: 'FuComplexSelect', options: [{ label: this.$t('dataset.completed'), value: 'Completed' }, { label: this.$t('dataset.underway'), value: 'Underway' }, { label: this.$t('dataset.error'), value: 'Error' }], multiple: false }
         ]
@@ -111,51 +117,31 @@ export default {
       last_condition: null,
       show_error_massage: false,
       error_massage: '',
-      matchLogId: null
+      matchLogId: null,
+      lastRequestComplete: true
     }
   },
   computed: {
   },
   created() {
-    if (this.param == null) {
-      this.last_condition = {}
-      this.search()
-    } else if (this.param.name) {
-      this.last_condition = {
-        'dataset_table_task.name': {
-          field: 'dataset_table_task.name',
-          operator: 'eq',
-          value: this.param.name
-        }
-      }
-      this.search(this.last_condition)
-    } else if (this.param.taskId) {
+    if (this.param !== null && this.param.taskId) {
       this.matchLogId = this.param.logId || this.matchLogId
-      this.last_condition = {
-        'dataset_table_task.id': {
-          field: 'dataset_table_task.id',
-          operator: 'eq',
-          value: this.param.taskId
+      this.transCondition['dataset_table_task.id'] = {
+            operator: 'eq',
+            value: this.param.taskId
         }
-      }
-      this.search(this.last_condition)
     }
-
-    // this.timer = setInterval(() => {
-    //   this.search(this.last_condition, false)
-    // }, 5000)
     this.createTimer()
   },
   beforeDestroy() {
-    // clearInterval(this.timer)
     this.destroyTimer()
   },
   methods: {
     createTimer() {
       if (!this.timer) {
         this.timer = setInterval(() => {
-          this.search(this.last_condition, false)
-        }, 5000)
+          this.timerSearch(this.last_condition, false)
+        }, 15000)
       }
     },
     destroyTimer() {
@@ -164,25 +150,6 @@ export default {
         this.timer = null
       }
     },
-    // msg2Current(routerParam) {
-    //   if (!routerParam || !routerParam.taskId) return
-    //   const taskId = routerParam.taskId
-    //   // console.log(taskId)
-    //   const current_condition = {
-    //     'dataset_table_task.id': {
-    //       field: 'dataset_table_task.id',
-    //       operator: 'eq',
-    //       value: taskId
-    //     }
-    //   }
-    //   // 先把定时器干掉 否则会阻塞下面的search
-    //   this.destroyTimer()
-
-    //   this.search(current_condition)
-
-    //   // 查询完再开启定时器
-    //   this.createTimer()
-    // },
     sortChange({ column, prop, order }) {
       this.orderConditions = []
       if (!order) {
@@ -200,6 +167,26 @@ export default {
       this.search(this.last_condition)
     },
     select(selection) {
+    },
+    timerSearch(condition, showLoading = true) {
+      if(!this.lastRequestComplete){
+        return;
+      }else {
+        this.lastRequestComplete = false;
+      }
+
+      this.last_condition = condition
+      condition = formatQuickCondition(condition, 'dataset_table_task.name')
+      const temp = formatCondition(condition)
+      const param = temp || {}
+      param['orders'] = formatOrders(this.orderConditions)
+      post('/dataset/taskLog/list/notexcel/' + this.paginationConfig.currentPage + '/' + this.paginationConfig.pageSize, param, showLoading).then(response => {
+        this.data = response.data.listObject
+        this.paginationConfig.total = response.data.itemCount
+        this.lastRequestComplete = true;
+      }).catch(() => {
+        this.lastRequestComplete = true;
+      })
     },
     search(condition, showLoading = true) {
       this.last_condition = condition

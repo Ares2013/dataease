@@ -1,18 +1,23 @@
 package io.dataease.datasource.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import io.dataease.base.domain.*;
 import io.dataease.base.mapper.*;
 import io.dataease.base.mapper.ext.ExtDataSourceMapper;
 import io.dataease.base.mapper.ext.query.GridExample;
 import io.dataease.commons.exception.DEException;
+import io.dataease.commons.model.AuthURD;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.CommonThreadPool;
 import io.dataease.commons.utils.LogUtil;
+import io.dataease.controller.ResultHolder;
 import io.dataease.controller.request.DatasourceUnionRequest;
 import io.dataease.controller.sys.base.BaseGridRequest;
 import io.dataease.controller.sys.base.ConditionEntity;
 import io.dataease.datasource.dto.DBTableDTO;
+import io.dataease.datasource.dto.MysqlConfigration;
+import io.dataease.datasource.dto.OracleConfigration;
 import io.dataease.datasource.provider.DatasourceProvider;
 import io.dataease.datasource.provider.ProviderFactory;
 import io.dataease.datasource.request.DatasourceRequest;
@@ -21,6 +26,8 @@ import io.dataease.dto.dataset.DataTableInfoDTO;
 import io.dataease.exception.DataEaseException;
 import io.dataease.i18n.Translator;
 import io.dataease.service.dataset.DataSetGroupService;
+import io.dataease.service.message.DeMsgutil;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -30,7 +37,10 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -57,6 +67,7 @@ public class DatasourceService {
         datasource.setCreateBy(String.valueOf(AuthUtils.getUser().getUsername()));
         datasourceMapper.insertSelective(datasource);
         handleConnectionPool(datasource, "add");
+        checkAndUpdateDatasourceStatus(datasource);
         return datasource;
     }
 
@@ -76,7 +87,16 @@ public class DatasourceService {
 
     public List<DatasourceDTO> getDatasourceList(DatasourceUnionRequest request) throws Exception {
         request.setSort("update_time desc");
-        return extDataSourceMapper.queryUnion(request);
+        List<DatasourceDTO> datasourceDTOS = extDataSourceMapper.queryUnion(request);
+        datasourceDTOS.forEach(datasourceDTO -> {
+            if(datasourceDTO.getType().equalsIgnoreCase("mysql")){
+                datasourceDTO.setConfiguration(JSONObject.toJSONString(new Gson().fromJson(datasourceDTO.getConfiguration(), MysqlConfigration.class)) );
+            };
+            if(datasourceDTO.getType().equalsIgnoreCase("oracle")){
+                datasourceDTO.setConfiguration(JSONObject.toJSONString(new Gson().fromJson(datasourceDTO.getConfiguration(), OracleConfigration.class)));
+            };
+        });
+        return datasourceDTOS;
     }
 
     public List<DatasourceDTO> gridQuery(BaseGridRequest request) {
@@ -111,22 +131,42 @@ public class DatasourceService {
         datasource.setUpdateTime(System.currentTimeMillis());
         datasourceMapper.updateByPrimaryKeySelective(datasource);
         handleConnectionPool(datasource, "edit");
+        checkAndUpdateDatasourceStatus(datasource);
     }
 
-    public void validate(Datasource datasource) throws Exception {
-        DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
-        DatasourceRequest datasourceRequest = new DatasourceRequest();
-        datasourceRequest.setDatasource(datasource);
-        datasourceProvider.checkStatus(datasourceRequest);
-    }
-
-    public void validate(String datasourceId) throws Exception {
-        if(StringUtils.isEmpty(datasourceId)){
-            return;
+    public ResultHolder validate(Datasource datasource) throws Exception {
+        try {
+            DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
+            DatasourceRequest datasourceRequest = new DatasourceRequest();
+            datasourceRequest.setDatasource(datasource);
+            datasourceProvider.checkStatus(datasourceRequest);
+            return ResultHolder.success("Success");
+        }catch (Exception e){
+            return ResultHolder.error("Datasource is invalid: " + e.getMessage());
         }
-        Datasource datasource = datasourceMapper.selectByPrimaryKey(datasourceId);
-        validate(datasource);
+
     }
+
+    public ResultHolder validate(String datasourceId) {
+        Datasource datasource = datasourceMapper.selectByPrimaryKey(datasourceId);
+        if(datasource == null){
+            return ResultHolder.error("Can not find datasource: "+ datasourceId);
+        }
+        try {
+            DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
+            DatasourceRequest datasourceRequest = new DatasourceRequest();
+            datasourceRequest.setDatasource(datasource);
+            datasourceProvider.checkStatus(datasourceRequest);
+            datasource.setStatus("Success");
+            return ResultHolder.success("Success");
+        }catch (Exception e){
+            datasource.setStatus("Error");
+            return ResultHolder.error("Datasource is invalid: " + e.getMessage());
+        }finally {
+            datasourceMapper.updateByPrimaryKey(datasource);
+        }
+    }
+
     public List<String> getSchema(Datasource datasource) throws Exception {
         DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
         DatasourceRequest datasourceRequest = new DatasourceRequest();
@@ -199,5 +239,66 @@ public class DatasourceService {
         if (CollectionUtils.isNotEmpty(datasourceMapper.selectByExample(example))) {
             DEException.throwException(Translator.get("i18n_ds_name_exists"));
         }
+    }
+
+    public void updateDatasourceStatus(){
+        List<Datasource> datasources = datasourceMapper.selectByExampleWithBLOBs(new DatasourceExample());
+        datasources.forEach(datasource -> {
+            // checkAndUpdateDatasourceStatus(datasource);
+            checkAndUpdateDatasourceStatus(datasource, true);
+        });
+    }
+
+    private void checkAndUpdateDatasourceStatus(Datasource datasource){
+        try {
+            DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
+            DatasourceRequest datasourceRequest = new DatasourceRequest();
+            datasourceRequest.setDatasource(datasource);
+            datasourceProvider.checkStatus(datasourceRequest);
+            datasource.setStatus("Success");
+            datasourceMapper.updateByPrimaryKeySelective(datasource);
+        } catch (Exception e) {
+            datasource.setStatus("Error");
+            datasourceMapper.updateByPrimaryKeySelective(datasource);
+        }
+    }
+
+    private void checkAndUpdateDatasourceStatus(Datasource datasource, Boolean withMsg){
+        try {
+            DatasourceProvider datasourceProvider = ProviderFactory.getProvider(datasource.getType());
+            DatasourceRequest datasourceRequest = new DatasourceRequest();
+            datasourceRequest.setDatasource(datasource);
+            datasourceProvider.checkStatus(datasourceRequest);
+            datasource.setStatus("Success");
+            datasourceMapper.updateByPrimaryKeySelective(datasource);
+        } catch (Exception e) {
+            Datasource temp = datasourceMapper.selectByPrimaryKey(datasource.getId());
+            datasource.setStatus("Error");
+            if (!StringUtils.equals(temp.getStatus(), "Error")) {
+                sendWebMsg(datasource);
+                datasourceMapper.updateByPrimaryKeySelective(datasource);
+            }            
+            
+        }
+    }
+
+
+    private void sendWebMsg(Datasource datasource) {
+        
+        String id = datasource.getId();
+        AuthURD authURD = AuthUtils.authURDR(id);
+        Set<Long> userIds = AuthUtils.userIdsByURD(authURD);
+        Long typeId = 8L;// 代表数据源失效
+        Gson gson = new Gson();
+        userIds.forEach(userId -> {
+            Map<String, Object> param = new HashMap<>();
+            param.put("id", id);
+            param.put("name", datasource.getName());
+            
+            
+            String content = "数据源【" + datasource.getName() + "】无效";
+            
+            DeMsgutil.sendMsg(userId, typeId, 1L, content, gson.toJson(param));
+        });
     }
 }

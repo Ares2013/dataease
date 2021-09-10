@@ -3,10 +3,7 @@ package io.dataease.datasource.provider;
 import com.google.gson.Gson;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import io.dataease.datasource.constants.DatasourceTypes;
-import io.dataease.datasource.dto.MysqlConfigration;
-import io.dataease.datasource.dto.OracleConfigration;
-import io.dataease.datasource.dto.SqlServerConfigration;
-import io.dataease.datasource.dto.TableFiled;
+import io.dataease.datasource.dto.*;
 import io.dataease.datasource.request.DatasourceRequest;
 import io.dataease.exception.DataEaseException;
 import io.dataease.i18n.Translator;
@@ -108,7 +105,9 @@ public class JdbcProvider extends DatasourceProvider {
                 int columType = metaData.getColumnType(j + 1);
                 switch (columType) {
                     case Types.DATE:
-                        row[j] = rs.getDate(j + 1).toString();
+                        if(rs.getDate(j + 1) != null){
+                            row[j] = rs.getDate(j + 1).toString();
+                        }
                         break;
                     default:
                         row[j] = rs.getString(j + 1);
@@ -132,7 +131,7 @@ public class JdbcProvider extends DatasourceProvider {
         } catch (SQLException e) {
             DataEaseException.throwException(e);
         } catch (Exception e) {
-            DataEaseException.throwException(e);
+            DataEaseException.throwException(Translator.get("i18n_datasource_connect_error") + e.getMessage());
         } finally {
             if(connection != null){
                 connection.close();
@@ -287,7 +286,7 @@ public class JdbcProvider extends DatasourceProvider {
         }
         tableFiled.setRemarks(remarks);
         tableFiled.setFieldSize(Integer.valueOf(resultSet.getString("COLUMN_SIZE")));
-        String dbType = resultSet.getString("TYPE_NAME");
+        String dbType = resultSet.getString("TYPE_NAME").toUpperCase();
         tableFiled.setFieldType(dbType);
         if(dbType.equalsIgnoreCase("LONG")){tableFiled.setFieldSize(65533);}
         if(StringUtils.isNotEmpty(dbType) && dbType.toLowerCase().contains("date") && tableFiled.getFieldSize() < 50 ){
@@ -307,7 +306,7 @@ public class JdbcProvider extends DatasourceProvider {
             resultSet.close();
             ps.close();
         } catch (Exception e) {
-            DataEaseException.throwException(e);
+            DataEaseException.throwException(e.getMessage());
         } finally {
             if(con != null){con.close();}
         }
@@ -374,12 +373,12 @@ public class JdbcProvider extends DatasourceProvider {
     private void addToPool(DatasourceRequest datasourceRequest) throws PropertyVetoException {
         ComboPooledDataSource dataSource;
         dataSource = new ComboPooledDataSource();
-        setCredential(datasourceRequest, dataSource);
-        dataSource.setMaxIdleTime(30); // 最大空闲时间
-        dataSource.setAcquireIncrement(5);// 增长数
-        dataSource.setInitialPoolSize(initPoolSize);// 初始连接数
-        dataSource.setMinPoolSize(initPoolSize); // 最小连接数
-        dataSource.setMaxPoolSize(maxConnections); // 最大连接数
+        JdbcDTO jdbcDTO = setCredential(datasourceRequest, dataSource);
+        dataSource.setMaxIdleTime(jdbcDTO.getMaxIdleTime()); // 最大空闲时间
+        dataSource.setAcquireIncrement(jdbcDTO.getAcquireIncrement());// 增长数
+        dataSource.setInitialPoolSize(jdbcDTO.getInitialPoolSize());// 初始连接数
+        dataSource.setMinPoolSize(jdbcDTO.getMinPoolSize()); // 最小连接数
+        dataSource.setMaxPoolSize(jdbcDTO.getMaxPoolSize()); // 最大连接数
         dataSource.setAcquireRetryAttempts(30);// 获取连接重试次数
         dataSource.setIdleConnectionTestPeriod(60); // 每60s检查数据库空闲连接
         dataSource.setMaxStatements(0); // c3p0全局的PreparedStatements缓存的大小
@@ -429,8 +428,14 @@ public class JdbcProvider extends DatasourceProvider {
                 driver = oracleConfigration.getDriver();
                 jdbcurl = oracleConfigration.getJdbc();
                 props.put( "oracle.net.CONNECT_TIMEOUT" , "5000") ;
-                props.put( "oracle.jdbc.ReadTimeout" , "5000" ) ;
+//                props.put( "oracle.jdbc.ReadTimeout" , "5000" ) ;
                 break;
+            case pg:
+                PgConfigration pgConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), PgConfigration.class);
+                username = pgConfigration.getUsername();
+                password = pgConfigration.getPassword();
+                driver = pgConfigration.getDriver();
+                jdbcurl = pgConfigration.getJdbc();
             default:
                 break;
         }
@@ -444,8 +449,9 @@ public class JdbcProvider extends DatasourceProvider {
     }
 
 
-    private void setCredential(DatasourceRequest datasourceRequest, ComboPooledDataSource dataSource) throws PropertyVetoException {
+    private JdbcDTO setCredential(DatasourceRequest datasourceRequest, ComboPooledDataSource dataSource) throws PropertyVetoException {
         DatasourceTypes datasourceType = DatasourceTypes.valueOf(datasourceRequest.getDatasource().getType());
+        JdbcDTO jdbcDTO = new JdbcDTO();
         switch (datasourceType) {
             case mysql:
                 MysqlConfigration mysqlConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), MysqlConfigration.class);
@@ -453,6 +459,7 @@ public class JdbcProvider extends DatasourceProvider {
                 dataSource.setDriverClass(mysqlConfigration.getDriver());
                 dataSource.setPassword(mysqlConfigration.getPassword());
                 dataSource.setJdbcUrl(mysqlConfigration.getJdbc());
+                jdbcDTO = mysqlConfigration;
                 break;
             case doris:
                 MysqlConfigration dorisConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), MysqlConfigration.class);
@@ -460,6 +467,7 @@ public class JdbcProvider extends DatasourceProvider {
                 dataSource.setDriverClass(dorisConfigration.getDriver());
                 dataSource.setPassword(dorisConfigration.getPassword());
                 dataSource.setJdbcUrl(dorisConfigration.getJdbc());
+                jdbcDTO = dorisConfigration;
                 break;
             case sqlServer:
                 SqlServerConfigration sqlServerConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), SqlServerConfigration.class);
@@ -467,6 +475,7 @@ public class JdbcProvider extends DatasourceProvider {
                 dataSource.setDriverClass(sqlServerConfigration.getDriver());
                 dataSource.setPassword(sqlServerConfigration.getPassword());
                 dataSource.setJdbcUrl(sqlServerConfigration.getJdbc());
+                jdbcDTO = sqlServerConfigration;
                 break;
             case oracle:
                 OracleConfigration oracleConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), OracleConfigration.class);
@@ -474,10 +483,20 @@ public class JdbcProvider extends DatasourceProvider {
                 dataSource.setDriverClass(oracleConfigration.getDriver());
                 dataSource.setPassword(oracleConfigration.getPassword());
                 dataSource.setJdbcUrl(oracleConfigration.getJdbc());
+                jdbcDTO = oracleConfigration;
+                break;
+            case pg:
+                PgConfigration pgConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), PgConfigration.class);
+                dataSource.setUser(pgConfigration.getUsername());
+                dataSource.setDriverClass(pgConfigration.getDriver());
+                dataSource.setPassword(pgConfigration.getPassword());
+                dataSource.setJdbcUrl(pgConfigration.getJdbc());
+                jdbcDTO = pgConfigration;
                 break;
             default:
                 break;
         }
+        return jdbcDTO;
     }
 
     private String getDatabase(DatasourceRequest datasourceRequest) {
@@ -492,6 +511,9 @@ public class JdbcProvider extends DatasourceProvider {
             case sqlServer:
                 SqlServerConfigration sqlServerConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), SqlServerConfigration.class);
                 return sqlServerConfigration.getDataBase();
+            case pg:
+                PgConfigration pgConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), PgConfigration.class);
+                return pgConfigration.getDataBase();
             default:
                 return null;
         }
@@ -506,13 +528,24 @@ public class JdbcProvider extends DatasourceProvider {
                 return "show tables;";
             case sqlServer:
                 SqlServerConfigration sqlServerConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), SqlServerConfigration.class);
-                return "SELECT TABLE_NAME FROM DATABASE.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';".replace("DATABASE", sqlServerConfigration.getDataBase());
+                if(StringUtils.isEmpty(sqlServerConfigration.getSchema())){
+                    throw new Exception(Translator.get("i18n_schema_is_empty"));
+                }
+                return "SELECT TABLE_NAME FROM DATABASE.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'DS_SCHEMA' ;"
+                        .replace("DATABASE", sqlServerConfigration.getDataBase())
+                        .replace("DS_SCHEMA", sqlServerConfigration.getSchema());
             case oracle:
                 OracleConfigration oracleConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), OracleConfigration.class);
                 if(StringUtils.isEmpty(oracleConfigration.getSchema())){
                     throw new Exception(Translator.get("i18n_schema_is_empty"));
                 }
                 return "select table_name, owner from all_tables where owner='" + oracleConfigration.getSchema() + "'";
+            case pg:
+                PgConfigration pgConfigration = new Gson().fromJson(datasourceRequest.getDatasource().getConfiguration(), PgConfigration.class);
+                if(StringUtils.isEmpty(pgConfigration.getSchema())){
+                    throw new Exception(Translator.get("i18n_schema_is_empty"));
+                }
+                return "SELECT tablename FROM  pg_tables WHERE  tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%' AND schemaname='SCHEMA' ;".replace("SCHEMA", pgConfigration.getSchema());
             default:
                 return "show tables;";
         }
@@ -523,6 +556,10 @@ public class JdbcProvider extends DatasourceProvider {
         switch (datasourceType) {
             case oracle:
                 return "select * from all_users";
+            case sqlServer:
+                return "select name from sys.schemas;";
+            case pg:
+                return "SELECT nspname FROM pg_namespace;";
             default:
                 return "show tables;";
         }

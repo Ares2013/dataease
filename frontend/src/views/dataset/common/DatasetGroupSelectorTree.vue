@@ -68,7 +68,7 @@
 
 <script>
 import { isKettleRunning, post } from '@/api/dataset/dataset'
-import { authModel } from '@/api/system/sysAuth'
+import { hasDataPermission } from '@/utils/permission'
 
 export default {
   name: 'DatasetGroupSelectorTree',
@@ -112,6 +112,11 @@ export default {
       type: String,
       required: false,
       default: null
+    },
+    privileges: {
+      type: String,
+      required: false,
+      default: 'use'
     }
   },
   data() {
@@ -157,16 +162,17 @@ export default {
       this.unionDataChange()
     },
     'table': function() {
-      if (this.table && this.table.sceneId) {
-        post('dataset/group/getScene/' + this.table.sceneId, {}, false).then(response => {
-          this.currGroup = response.data
-
-          this.$nextTick(function() {
-            this.sceneMode = true
-            this.tableTree()
-          })
-        })
-      }
+      // if (this.table && this.table.sceneId) {
+      //   post('dataset/group/getScene/' + this.table.sceneId, {}, false).then(response => {
+      //     this.currGroup = response.data
+      //
+      //     this.$nextTick(function() {
+      //       this.sceneMode = true
+      //       this.tableTree()
+      //     })
+      //   })
+      // }
+      this.treeNode(this.groupForm)
     },
     search(val) {
       this.$emit('switchComponent', { name: '' })
@@ -230,16 +236,19 @@ export default {
       this.tableData = []
       if (this.currGroup) {
         this.dsLoading = true
+        this.tables = []
         post('/dataset/table/list', {
           sort: 'type asc,name asc,create_time desc',
           sceneId: this.currGroup.id,
           mode: this.mode < 0 ? null : this.mode,
           typeFilter: this.customType ? this.customType : null
         }, false).then(response => {
-          this.tables = response.data
-          for (let i = 0; i < this.tables.length; i++) {
-            if (this.tables[i].mode === 1 && this.kettleRunning === false) {
-              this.$set(this.tables[i], 'disabled', true)
+          for (let i = 0; i < response.data.length; i++) {
+            if (response.data[i].mode === 1 && this.kettleRunning === false) {
+              this.$set(response.data[i], 'disabled', true)
+            }
+            if (hasDataPermission(this.privileges, response.data[i].privileges)) {
+              this.tables.push(response.data[i])
             }
           }
           this.tableData = JSON.parse(JSON.stringify(this.tables))
@@ -343,6 +352,7 @@ export default {
       if (!this.isTreeSearch) {
         if (node.data.id) {
           this.dsLoading = true
+          this.tables = []
           post('/dataset/table/listAndGroup', {
             sort: 'type asc,name asc,create_time desc',
             sceneId: node.data.id,
@@ -350,14 +360,16 @@ export default {
             type: this.type,
             typeFilter: this.customType ? this.customType : null
           }, false).then(response => {
-            this.tables = response.data
-            for (let i = 0; i < this.tables.length; i++) {
-              if (this.tables[i].mode === 1 && this.kettleRunning === false) {
-                this.$set(this.tables[i], 'disabled', true)
+            for (let i = 0; i < response.data.length; i++) {
+              if (response.data[i].mode === 1 && this.kettleRunning === false) {
+                this.$set(response.data[i], 'disabled', true)
+              }
+              if (hasDataPermission(this.privileges, response.data[i].privileges)) {
+                this.tables.push(response.data[i])
               }
             }
-            this.tableData = JSON.parse(JSON.stringify(this.tables))
 
+            this.tableData = JSON.parse(JSON.stringify(this.tables))
             this.$nextTick(function() {
               this.unionDataChange()
             })
@@ -390,11 +402,14 @@ export default {
 
     searchTree(val) {
       const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'dataset',
+        // withExtend: 'parent',
+        // modelType: 'dataset',
         name: val
       }
-      authModel(queryCondition).then(res => {
+      // authModel(queryCondition).then(res => {
+      //   this.data = this.buildTree(res.data)
+      // })
+      post('/dataset/table/search', queryCondition).then(res => {
         this.data = this.buildTree(res.data)
       })
     },
@@ -407,8 +422,8 @@ export default {
       const roots = []
       arrs.forEach(el => {
         // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
+        // el.type = el.modelInnerType
+        // el.isLeaf = el.leaf
         if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
           roots.push(el)
           return

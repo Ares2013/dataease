@@ -1,8 +1,9 @@
 <template>
-  <div id="canvasInfoTemp" :style="customStyle" class="bg">
+  <div id="canvasInfoTemp" ref="canvasInfoTemp" :style="customStyle" class="bg" @mouseup="deselectCurComponent" @mousedown="handleMouseDown">
     <el-row v-if="componentDataShow.length===0" style="height: 100%;" class="custom-position">
       {{ $t('panel.panelNull') }}
     </el-row>
+    <canvas-opt-bar />
     <ComponentWrapper
       v-for="(item, index) in componentDataInfo"
       :key="index"
@@ -39,9 +40,10 @@ import { deepCopy } from '@/components/canvas/utils/utils'
 import eventBus from '@/components/canvas/utils/eventBus'
 import elementResizeDetectorMaker from 'element-resize-detector'
 import UserViewDialog from '@/components/canvas/custom-component/UserViewDialog'
+import CanvasOptBar from '@/components/canvas/components/Editor/CanvasOptBar'
 
 export default {
-  components: { ComponentWrapper, UserViewDialog },
+  components: { ComponentWrapper, UserViewDialog, CanvasOptBar },
   model: {
     prop: 'show',
     event: 'change'
@@ -82,7 +84,7 @@ export default {
       componentDataShow: [],
       mainWidth: '100%',
       mainHeight: '100%',
-      searchCount: -1,
+      searchCount: 0,
       chartDetailsVisible: false,
       showChartInfo: {},
       showChartTableInfo: {}
@@ -121,6 +123,8 @@ export default {
       return this.componentDataShow
     },
     ...mapState([
+      'isClickComponent',
+      'curComponent',
       'componentData',
       'canvasStyleData'
     ])
@@ -151,6 +155,7 @@ export default {
       this.searchCount++
     }, refreshTime)
     eventBus.$on('openChartDetailsDialog', this.openChartDetailsDialog)
+    this.$store.commit('clearLinkageSettingInfo', false)
   },
   beforeDestroy() {
     clearInterval(this.timer)
@@ -204,6 +209,16 @@ export default {
     },
     exportExcel() {
       this.$refs['userViewDialog'].exportExcel()
+    },
+    deselectCurComponent(e) {
+      if (!this.isClickComponent) {
+        this.$store.commit('setCurComponent', { component: null, index: null })
+      }
+    },
+    handleMouseDown() {
+      // console.log('handleMouseDown123')
+
+      this.$store.commit('setClickComponentStatus', false)
     }
   }
 }
@@ -215,6 +230,7 @@ export default {
     min-height: 300px;
     width: 100%;
     height: 100%;
+    overflow-x: hidden;
     /*border: 1px solid #E6E6E6;*/
     background-size: 100% 100% !important;
     .canvas-container {

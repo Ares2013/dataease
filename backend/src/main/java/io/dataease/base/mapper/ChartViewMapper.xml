@@ -16,10 +16,13 @@
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="io.dataease.base.domain.ChartViewWithBLOBs">
     <result column="x_axis" jdbcType="LONGVARCHAR" property="xAxis" />
     <result column="y_axis" jdbcType="LONGVARCHAR" property="yAxis" />
+    <result column="y_axis_ext" jdbcType="LONGVARCHAR" property="yAxisExt" />
     <result column="ext_stack" jdbcType="LONGVARCHAR" property="extStack" />
+    <result column="ext_bubble" jdbcType="LONGVARCHAR" property="extBubble" />
     <result column="custom_attr" jdbcType="LONGVARCHAR" property="customAttr" />
     <result column="custom_style" jdbcType="LONGVARCHAR" property="customStyle" />
     <result column="custom_filter" jdbcType="LONGVARCHAR" property="customFilter" />
+    <result column="drill_fields" jdbcType="LONGVARCHAR" property="drillFields" />
     <result column="snapshot" jdbcType="LONGVARCHAR" property="snapshot" />
   </resultMap>
   <sql id="Example_Where_Clause">
@@ -85,7 +88,8 @@
     style_priority
   </sql>
   <sql id="Blob_Column_List">
-    x_axis, y_axis, ext_stack, custom_attr, custom_style, custom_filter, snapshot
+    x_axis, y_axis, y_axis_ext, ext_stack, ext_bubble, custom_attr, custom_style, custom_filter, 
+    drill_fields, snapshot
   </sql>
   <select id="selectByExampleWithBLOBs" parameterType="io.dataease.base.domain.ChartViewExample" resultMap="ResultMapWithBLOBs">
     select
@@ -140,14 +144,16 @@
       table_id, `type`, title, 
       create_by, create_time, update_time, 
       style_priority, x_axis, y_axis, 
-      ext_stack, custom_attr, custom_style, 
-      custom_filter, snapshot)
+      y_axis_ext, ext_stack, ext_bubble, 
+      custom_attr, custom_style, custom_filter, 
+      drill_fields, snapshot)
     values (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{sceneId,jdbcType=VARCHAR}, 
       #{tableId,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, 
       #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT}, 
       #{stylePriority,jdbcType=VARCHAR}, #{xAxis,jdbcType=LONGVARCHAR}, #{yAxis,jdbcType=LONGVARCHAR}, 
-      #{extStack,jdbcType=LONGVARCHAR}, #{customAttr,jdbcType=LONGVARCHAR}, #{customStyle,jdbcType=LONGVARCHAR}, 
-      #{customFilter,jdbcType=LONGVARCHAR}, #{snapshot,jdbcType=LONGVARCHAR})
+      #{yAxisExt,jdbcType=LONGVARCHAR}, #{extStack,jdbcType=LONGVARCHAR}, #{extBubble,jdbcType=LONGVARCHAR}, 
+      #{customAttr,jdbcType=LONGVARCHAR}, #{customStyle,jdbcType=LONGVARCHAR}, #{customFilter,jdbcType=LONGVARCHAR}, 
+      #{drillFields,jdbcType=LONGVARCHAR}, #{snapshot,jdbcType=LONGVARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="io.dataease.base.domain.ChartViewWithBLOBs">
     insert into chart_view
@@ -188,8 +194,14 @@
       <if test="yAxis != null">
         y_axis,
       </if>
+      <if test="yAxisExt != null">
+        y_axis_ext,
+      </if>
       <if test="extStack != null">
         ext_stack,
+      </if>
+      <if test="extBubble != null">
+        ext_bubble,
       </if>
       <if test="customAttr != null">
         custom_attr,
@@ -199,6 +211,9 @@
       </if>
       <if test="customFilter != null">
         custom_filter,
+      </if>
+      <if test="drillFields != null">
+        drill_fields,
       </if>
       <if test="snapshot != null">
         snapshot,
@@ -241,8 +256,14 @@
       <if test="yAxis != null">
         #{yAxis,jdbcType=LONGVARCHAR},
       </if>
+      <if test="yAxisExt != null">
+        #{yAxisExt,jdbcType=LONGVARCHAR},
+      </if>
       <if test="extStack != null">
         #{extStack,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="extBubble != null">
+        #{extBubble,jdbcType=LONGVARCHAR},
       </if>
       <if test="customAttr != null">
         #{customAttr,jdbcType=LONGVARCHAR},
@@ -252,6 +273,9 @@
       </if>
       <if test="customFilter != null">
         #{customFilter,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="drillFields != null">
+        #{drillFields,jdbcType=LONGVARCHAR},
       </if>
       <if test="snapshot != null">
         #{snapshot,jdbcType=LONGVARCHAR},
@@ -303,8 +327,14 @@
       <if test="record.yAxis != null">
         y_axis = #{record.yAxis,jdbcType=LONGVARCHAR},
       </if>
+      <if test="record.yAxisExt != null">
+        y_axis_ext = #{record.yAxisExt,jdbcType=LONGVARCHAR},
+      </if>
       <if test="record.extStack != null">
         ext_stack = #{record.extStack,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="record.extBubble != null">
+        ext_bubble = #{record.extBubble,jdbcType=LONGVARCHAR},
       </if>
       <if test="record.customAttr != null">
         custom_attr = #{record.customAttr,jdbcType=LONGVARCHAR},
@@ -314,6 +344,9 @@
       </if>
       <if test="record.customFilter != null">
         custom_filter = #{record.customFilter,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="record.drillFields != null">
+        drill_fields = #{record.drillFields,jdbcType=LONGVARCHAR},
       </if>
       <if test="record.snapshot != null">
         snapshot = #{record.snapshot,jdbcType=LONGVARCHAR},
@@ -337,10 +370,13 @@
       style_priority = #{record.stylePriority,jdbcType=VARCHAR},
       x_axis = #{record.xAxis,jdbcType=LONGVARCHAR},
       y_axis = #{record.yAxis,jdbcType=LONGVARCHAR},
+      y_axis_ext = #{record.yAxisExt,jdbcType=LONGVARCHAR},
       ext_stack = #{record.extStack,jdbcType=LONGVARCHAR},
+      ext_bubble = #{record.extBubble,jdbcType=LONGVARCHAR},
       custom_attr = #{record.customAttr,jdbcType=LONGVARCHAR},
       custom_style = #{record.customStyle,jdbcType=LONGVARCHAR},
       custom_filter = #{record.customFilter,jdbcType=LONGVARCHAR},
+      drill_fields = #{record.drillFields,jdbcType=LONGVARCHAR},
       snapshot = #{record.snapshot,jdbcType=LONGVARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -398,8 +434,14 @@
       <if test="yAxis != null">
         y_axis = #{yAxis,jdbcType=LONGVARCHAR},
       </if>
+      <if test="yAxisExt != null">
+        y_axis_ext = #{yAxisExt,jdbcType=LONGVARCHAR},
+      </if>
       <if test="extStack != null">
         ext_stack = #{extStack,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="extBubble != null">
+        ext_bubble = #{extBubble,jdbcType=LONGVARCHAR},
       </if>
       <if test="customAttr != null">
         custom_attr = #{customAttr,jdbcType=LONGVARCHAR},
@@ -409,6 +451,9 @@
       </if>
       <if test="customFilter != null">
         custom_filter = #{customFilter,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="drillFields != null">
+        drill_fields = #{drillFields,jdbcType=LONGVARCHAR},
       </if>
       <if test="snapshot != null">
         snapshot = #{snapshot,jdbcType=LONGVARCHAR},
@@ -429,10 +474,13 @@
       style_priority = #{stylePriority,jdbcType=VARCHAR},
       x_axis = #{xAxis,jdbcType=LONGVARCHAR},
       y_axis = #{yAxis,jdbcType=LONGVARCHAR},
+      y_axis_ext = #{yAxisExt,jdbcType=LONGVARCHAR},
       ext_stack = #{extStack,jdbcType=LONGVARCHAR},
+      ext_bubble = #{extBubble,jdbcType=LONGVARCHAR},
       custom_attr = #{customAttr,jdbcType=LONGVARCHAR},
       custom_style = #{customStyle,jdbcType=LONGVARCHAR},
       custom_filter = #{customFilter,jdbcType=LONGVARCHAR},
+      drill_fields = #{drillFields,jdbcType=LONGVARCHAR},
       snapshot = #{snapshot,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=VARCHAR}
   </update>

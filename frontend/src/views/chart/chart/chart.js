@@ -25,6 +25,7 @@ export const DEFAULT_SIZE = {
   pieRoseRadius: 5,
   funnelWidth: 80,
   radarShape: 'polygon',
+  radarSize: 80,
   tableTitleFontSize: 12,
   tableItemFontSize: 12,
   tableTitleHeight: 36,
@@ -37,7 +38,18 @@ export const DEFAULT_SIZE = {
   quotaFontSize: 18,
   spaceSplit: 10,
   dimensionShow: true,
-  quotaShow: true
+  quotaShow: true,
+  scatterSymbol: 'circle',
+  scatterSymbolSize: 20,
+  treemapWidth: 80,
+  treemapHeight: 80,
+  liquidMax: 100,
+  liquidSize: 80,
+  liquidOutlineBorder: 4,
+  liquidOutlineDistance: 8,
+  liquidWaveLength: 128,
+  liquidWaveCount: 3,
+  liquidShape: 'circle'
 }
 export const DEFAULT_LABEL = {
   show: false,
@@ -102,6 +114,12 @@ export const DEFAULT_XAXIS_STYLE = {
       width: 1,
       style: 'solid'
     }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null
   }
 }
 export const DEFAULT_YAXIS_STYLE = {
@@ -126,6 +144,42 @@ export const DEFAULT_YAXIS_STYLE = {
       width: 1,
       style: 'solid'
     }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null
+  }
+}
+export const DEFAULT_YAXIS_EXT_STYLE = {
+  show: true,
+  position: 'right',
+  name: '',
+  nameTextStyle: {
+    color: '#333333',
+    fontSize: 12
+  },
+  axisLabel: {
+    show: true,
+    color: '#333333',
+    fontSize: '12',
+    rotate: 0,
+    formatter: '{value}'
+  },
+  splitLine: {
+    show: true,
+    lineStyle: {
+      color: '#cccccc',
+      width: 1,
+      style: 'solid'
+    }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null
   }
 }
 export const DEFAULT_BACKGROUND_COLOR = {
@@ -508,11 +562,7 @@ export const BASE_RADAR = {
     },
     indicator: []
   },
-  series: [{
-    type: 'radar',
-    // areaStyle: {normal: {}},
-    data: []
-  }]
+  series: []
 }
 
 export const BASE_GAUGE = {
@@ -573,6 +623,7 @@ export const BASE_CHART_STRING = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
     background: DEFAULT_BACKGROUND_COLOR
   }),
   customFilter: '[]'
@@ -596,6 +647,7 @@ export const BASE_CHART = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
     background: DEFAULT_BACKGROUND_COLOR
   },
   customFilter: []
@@ -618,19 +670,182 @@ export const BASE_MAP = {
     calculable: true,
     inRange: {
       color: ['lightskyblue', 'yellow', 'orangered']
-    }
+    },
+    right: 0
   },
   //   legend: {},
   series: [
     {
       name: '',
       type: 'map',
-      map: 'HK',
+      map: 'MAP',
       roam: true,
       //   label: {
       //     show: true
       //   },
       data: []
+    }
+  ]
+}
+
+export const BASE_SCATTER = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect',
+    data: []
+  },
+  xAxis: {
+    data: [],
+    boundaryGap: false
+  },
+  yAxis: {
+    type: 'value'
+  },
+  series: [],
+  dataZoom: [
+    {
+      type: 'slider',
+      show: false,
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'slider',
+      show: false,
+      yAxisIndex: [0],
+      left: '93%',
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      yAxisIndex: [0],
+      start: 0,
+      end: 100
+    }
+  ]
+}
+
+export const BASE_TREEMAP = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect'
+  },
+  series: [
+    {
+      // name: '',
+      type: 'treemap',
+      itemStyle: {
+        gapWidth: 2
+      },
+      breadcrumb: {
+        show: false
+      },
+      // radius: ['0%', '60%'],
+      // avoidLabelOverlap: false,
+      // emphasis: {
+      //   itemStyle: {
+      //     shadowBlur: 10,
+      //     shadowOffsetX: 0,
+      //     shadowColor: 'rgba(0, 0, 0, 0.5)'
+      //   }
+      // },
+      data: []
+    }
+  ]
+}
+
+export const BASE_MIX = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect',
+    data: []
+  },
+  xAxis: {
+    data: []
+  },
+  yAxis: [
+    {
+      type: 'value'
+    },
+    {
+      type: 'value'
+    }
+  ],
+  series: [],
+  dataZoom: [
+    {
+      type: 'slider',
+      show: false,
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'slider',
+      show: false,
+      yAxisIndex: [0],
+      left: '93%',
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      yAxisIndex: [0],
+      start: 0,
+      end: 100
     }
   ]
 }

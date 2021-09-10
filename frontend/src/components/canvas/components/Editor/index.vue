@@ -3,12 +3,20 @@
     v-if="showDrag"
     id="editor"
     class="editor"
-    :class="{ edit: isEdit }"
+    :class="[
+      {
+        ['edit']: isEdit ,
+        ['parent_transform']:!chartDetailsVisible
+      }
+    ]"
     :style="customStyle"
     @mousedown="handleMouseDown"
   >
     <!-- 网格线 -->
-    <Grid v-if="canvasStyleData.auxiliaryMatrix" :matrix-style="matrixStyle" />
+    <Grid v-if="canvasStyleData.auxiliaryMatrix&&!linkageSettingStatus" :matrix-style="matrixStyle" />
+
+    <!-- 仪表板联动清除按钮-->
+    <canvas-opt-bar />
     <!--页面组件列表展示-->
     <de-drag
       v-for="(item, index) in componentData"
@@ -29,12 +37,18 @@
       :snap="true"
       :snap-tolerance="2"
       :change-style="customStyle"
+      :draggable="!linkageSettingStatus"
+      :resizable="!linkageSettingStatus"
+      :linkage-active="linkageSettingStatus&&item===curLinkageView"
       @refLineParams="getRefLineParams"
+      @showViewDetails="showViewDetails(index)"
+      @resizestop="resizestop(index,item)"
     >
       <component
         :is="item.component"
         v-if="item.type==='v-text'"
         :id="'component' + item.id"
+        ref="wrapperChild"
         class="component"
         :style="getComponentStyleDefault(item.style)"
         :prop-value="item.propValue"
@@ -58,6 +72,7 @@
       <de-out-widget
         v-else-if="item.type==='custom'"
         :id="'component' + item.id"
+        ref="wrapperChild"
         class="component"
         :style="getComponentStyleDefault(item.style)"
         :prop-value="item.propValue"
@@ -69,6 +84,7 @@
         :is="item.component"
         v-else-if="item.type==='other'"
         :id="'component' + item.id"
+        ref="wrapperChild"
         class="component"
         :style="getComponentStyle(item.style)"
         :prop-value="item.propValue"
@@ -80,6 +96,7 @@
         :is="item.component"
         v-else
         :id="'component' + item.id"
+        ref="wrapperChild"
         class="component"
         :style="getComponentStyleDefault(item.style)"
         :prop-value="item.propValue"
@@ -149,11 +166,14 @@ import { changeStyleWithScale } from '@/components/canvas/utils/translate'
 import { deepCopy } from '@/components/canvas/utils/utils'
 import UserViewDialog from '@/components/canvas/custom-component/UserViewDialog'
 import DeOutWidget from '@/components/dataease/DeOutWidget'
+import CanvasOptBar from '@/components/canvas/components/Editor/CanvasOptBar'
+
 export default {
-  components: { Shape, ContextMenu, MarkLine, Area, Grid, DeDrag, UserViewDialog, DeOutWidget },
+  components: { Shape, ContextMenu, MarkLine, Area, Grid, DeDrag, UserViewDialog, DeOutWidget, CanvasOptBar },
   props: {
     isEdit: {
       type: Boolean,
+      require: false,
       default: true
     },
 
@@ -245,7 +265,9 @@ export default {
       'componentData',
       'curComponent',
       'canvasStyleData',
-      'editor'
+      'editor',
+      'linkageSettingStatus',
+      'curLinkageView'
     ])
   },
   watch: {
@@ -270,16 +292,17 @@ export default {
       },
       deep: true
     },
-    canvasStyleData: {
-      handler(newVal, oldVla) {
-        // 第一次变化 不需要 重置边界 待改进
-        if (this.changeIndex++ > 0) {
-          this.resizeParentBounds()
-        }
-        // this.changeScale()
-      },
-      deep: true
-    },
+    // canvasStyleData: {
+    //   handler(newVal, oldVla) {
+    //     // 第一次变化 不需要 重置边界 待改进
+    //     if (this.changeIndex++ > 0) {
+    //       // this.resizeParentBounds()
+    //       this.$store.state.styleChangeTimes++
+    //     }
+    //     // this.changeScale()
+    //   },
+    //   deep: true
+    // },
     componentData: {
       handler(newVal, oldVla) {
         // console.log('11111')
@@ -602,6 +625,14 @@ export default {
     },
     exportExcel() {
       this.$refs['userViewDialog'].exportExcel()
+    },
+    showViewDetails(index) {
+      this.$refs.wrapperChild[index].openChartDetailsDialog()
+    },
+    resizestop(index, item) {
+      if (item.type === 'view') {
+        this.$refs.wrapperChild[index].chartResize()
+      }
     }
   }
 }
@@ -613,10 +644,15 @@ export default {
     /*background: #fff;*/
     margin: auto;
     background-size:100% 100% !important;
-
+    /*transform-style:preserve-3d;*/
     .lock {
         opacity: .5;
     }
+}
+.parent_transform {
+  //transform transform 会使z-index 失效；为了使编辑仪表板时 按钮一直在上面 采用transform-style 的方式
+  // transform-style 会导致 dialog 遮罩有问题 此处暂时用这个样式做控制
+  transform-style:preserve-3d;
 }
 .edit {
     outline: 1px solid gainsboro;

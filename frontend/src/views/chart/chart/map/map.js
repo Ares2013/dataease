@@ -33,16 +33,35 @@ export function baseMapOption(chart_option, chart) {
       }
       // visualMap
       const valueArr = chart.data.series[0].data
-      chart_option.visualMap.min = Math.min(...valueArr)
-      chart_option.visualMap.max = Math.max(...valueArr)
+      if (valueArr && valueArr.length > 0) {
+        const values = []
+        valueArr.forEach(function(ele) {
+          values.push(ele.value)
+        })
+        chart_option.visualMap.min = Math.min(...values)
+        chart_option.visualMap.max = Math.max(...values)
+        if (chart_option.visualMap.min === chart_option.visualMap.max) {
+          chart_option.visualMap.min = 0
+        }
+      } else {
+        chart_option.visualMap.min = 0
+        chart_option.visualMap.max = 0
+      }
+      if (chart_option.visualMap.min === 0 && chart_option.visualMap.max === 0) {
+        chart_option.visualMap.max = 100
+      }
+      // color
       if (customAttr.color && customAttr.color.colors) {
         chart_option.visualMap.inRange.color = customAttr.color.colors
+        chart_option.visualMap.inRange.colorAlpha = customAttr.color.alpha / 100
       }
       for (let i = 0; i < valueArr.length; i++) {
-        const y = {
-          name: chart.data.x[i],
-          value: valueArr[i]
-        }
+        // const y = {
+        //   name: chart.data.x[i],
+        //   value: valueArr[i]
+        // }
+        const y = valueArr[i]
+        y.name = chart.data.x[i]
         // color
         // y.itemStyle = {
         //   color: hexColorToRGBA(customAttr.color.colors[i % 9], customAttr.color.alpha),

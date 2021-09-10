@@ -9,6 +9,15 @@ export function query(pageIndex, pageSize, data) {
   })
 }
 
+export function unReadCount(data) {
+  return request({
+    url: '/api/sys_msg/unReadCount',
+    method: 'post',
+    loading: false,
+    data
+  })
+}
+
 export function updateStatus(msgId) {
   return request({
     url: '/api/sys_msg/setReaded/' + msgId,
@@ -20,6 +29,23 @@ export function updateStatus(msgId) {
 export function batchRead(data) {
   return request({
     url: '/api/sys_msg/batchRead',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
+export function allRead() {
+  return request({
+    url: '/api/sys_msg/allRead',
+    method: 'post',
+    loading: true
+  })
+}
+
+export function batchDelete(data) {
+  return request({
+    url: '/api/sys_msg/batchDelete',
     method: 'post',
     loading: true,
     data

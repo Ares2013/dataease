@@ -9,7 +9,7 @@
       <div>
         <slot name="toolbar" />
       </div>
-      <fu-search-bar v-bind="searchConfig" @exec="search">
+      <fu-search-bar ref="search" v-bind="searchConfig" @exec="search">
         <template #complex>
           <slot name="complex" />
         </template>
@@ -57,11 +57,20 @@ export default {
     // eslint-disable-next-line vue/require-default-prop
     searchConfig: Object,
     // eslint-disable-next-line vue/require-default-prop
-    paginationConfig: Object
+    paginationConfig: Object,
+    transCondition: {
+      type: Object,
+      default: null
+    }
   },
   data() {
     return {
       condition: {}
+    }
+  },
+  mounted() {
+    if (this.transCondition !== null) {
+      this.$refs.search.setConditions(this.transCondition)
     }
   },
   methods: {
@@ -77,7 +86,6 @@ export default {
 
 <style lang="scss">
 @import "~@/styles/mixin.scss";
-@import "~@/styles/variables.scss";
 .complex-table {
   .complex-table__header {
     @include flex-row(flex-start, center);

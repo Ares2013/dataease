@@ -1,7 +1,7 @@
 <template>
   <el-col>
     <el-row>
-      <el-button v-if="hasDataPermission('manage',param.privileges) || table.type !== 'excel'" icon="el-icon-setting" size="mini" @click="showConfig">
+      <el-button v-if="hasDataPermission('manage',param.privileges) && table.type !== 'excel'" icon="el-icon-setting" size="mini" @click="showConfig">
         {{ $t('dataset.update_setting') }}
       </el-button>
       <el-button icon="el-icon-refresh" size="mini" @click="refreshLog">
@@ -149,13 +149,12 @@
 
                 <el-form-item class="form-item">
                   <el-select v-model="taskForm.extraData.simple_cron_type"  filterable size="mini" @change="onSimpleCronChange()" >
-                    <el-option :label="$t('cron.minute')" value="minute" />
-                    <el-option :label="$t('cron.hour')" value="hour"  />
-                    <el-option :label="$t('cron.day')" value="day"  />
+                    <el-option :label="$t('cron.minute_default')" value="minute" />
+                    <el-option :label="$t('cron.hour_default')" value="hour" />
+                    <el-option :label="$t('cron.day_default')" value="day" />
                   </el-select>
                 </el-form-item>
-                <el-form-item class="form-item" :label="$t('cron.every_exec')">
-                </el-form-item>
+                <el-form-item class="form-item" :label="$t('cron.every_exec')" />
               </el-form>
             </el-form-item>
 
@@ -221,6 +220,23 @@
               <span v-if="scope.row.rate === 'CRON'">{{ $t('dataset.cron_config') }}</span>
             </template>
           </el-table-column>
+          <el-table-column prop="status" :label="$t('dataset.task.task_status')">
+            <template slot-scope="scope">
+            <span v-if="scope.row.status === 'Underway'" style="color: green">
+              <el-link type="success" style="font-size: 12px" @click="changeTaskStatus(scope.row)">{{ $t('dataset.task.underway') }}</el-link>
+            </span>
+              <span v-if="scope.row.status === 'Stopped'" style="color: red">
+              <div type="danger" style="font-size: 12px">{{ $t('dataset.task.stopped') }}</div>
+            </span>
+              <span v-if="scope.row.status === 'Pending'" style="color: blue">
+              <el-link type="primary" style="font-size: 12px" @click="changeTaskStatus(scope.row)">{{ $t('dataset.task.pending') }}</el-link>
+            </span>
+              <span v-if="scope.row.status === 'Exec'" style="color: blue">
+              <i class="el-icon-loading" />
+              {{ $t('dataset.underway') }}
+            </span>
+            </template>
+          </el-table-column>
           <el-table-column
             :label="$t('dataset.operate')"
           >
@@ -230,7 +246,7 @@
                 type="primary"
                 icon="el-icon-edit"
                 circle
-                :disabled="scope.row.rate === 'SIMPLE'"
+                :disabled="scope.row.rate === 'SIMPLE' || scope.row.status === 'Stopped'"
                 @click="addTask(scope.row)"
               />
               <el-button
@@ -416,10 +432,14 @@ export default {
   created() {
     this.timer = setInterval(() => {
       this.listTaskLog(false)
+    }, 5000);
+    this.taskTimer = setInterval(() => {
+      this.listTask(false)
     }, 5000)
   },
   beforeDestroy() {
     clearInterval(this.timer)
+    clearInterval(this.taskTimer)
   },
   methods: {
     calHeight() {
@@ -493,8 +513,8 @@ export default {
       }
       this.update_task = true
     },
-    listTask() {
-      post('/dataset/task/list', { tableId: this.table.id }).then(response => {
+    listTask(loading = true) {
+      post('/dataset/task/list', { tableId: this.table.id }, loading).then(response => {
         this.taskData = response.data
       })
     },
@@ -534,12 +554,7 @@ export default {
             this.incrementalConfig.incrementalDelete = this.sql
           }
           this.incrementalConfig.tableId = this.table.id
-          let startTime = new Date(task.startTime).getTime()
-          if(startTime < new Date().getTime()){
-            startTime = new Date().getTime()
-          }
-          task.startTime = startTime
-
+          task.startTime = new Date(task.startTime).getTime()
           task.endTime = new Date(task.endTime).getTime()
           task.tableId = this.table.id
           const form = JSON.parse(JSON.stringify(task))
@@ -563,6 +578,18 @@ export default {
           return false
         }
 
+      })
+    },
+    changeTaskStatus(task) {
+      const param = task
+      param.status = task.status === 'Underway' ? 'Pending' : 'Underway'
+      post('/dataset/task/updateStatus', task).then(response => {
+        task.status = param.status
+        this.$message({
+          message: this.$t('dataset.task.change_success'),
+          type: 'success',
+          showClose: true
+        })
       })
     },
     deleteTask(task) {

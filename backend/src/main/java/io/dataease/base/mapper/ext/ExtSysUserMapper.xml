@@ -34,9 +34,16 @@
 
 
     <select id="query" parameterType="io.dataease.base.mapper.ext.query.GridExample" resultMap="BaseResultMap">
-        select u.*,u.user_id as id, d.pid, d.name as dept_name
-        from sys_user u
-        left join sys_dept d on d.dept_id = u.dept_id
+        SELECT DISTINCT
+        u.*,
+        u.user_id AS id,
+        d.pid,
+        d.NAME AS dept_name
+        FROM
+        sys_user u
+        LEFT JOIN sys_dept d ON d.dept_id = u.dept_id
+        LEFT JOIN sys_users_roles sur ON sur.user_id = u.user_id
+        LEFT JOIN sys_role r ON r.role_id = sur.role_id
 
         <if test="_parameter != null">
             <include refid="io.dataease.base.mapper.ext.query.GridSql.gridCondition" />
@@ -54,5 +61,9 @@
         from sys_users_roles sur
         left join sys_role r on r.role_id = sur.role_id
         where sur.user_id = #{user_id}
+    </select>
+
+    <select id="ldapUserNames" resultType="java.lang.String" parameterType="java.lang.Integer">
+        select username from sys_user u where u.from = #{from}
     </select>
 </mapper>

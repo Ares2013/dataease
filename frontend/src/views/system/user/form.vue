@@ -45,6 +45,7 @@
       </el-form-item>
       <el-form-item :label="$t('commons.role')" prop="roleIds">
         <el-select
+          ref="roleSelect"
           v-model="form.roleIds"
           style="width: 100%"
           :disabled="formType !== 'add' && form.isAdmin"
@@ -72,16 +73,11 @@
 
 <script>
 import LayoutContent from '@/components/business/LayoutContent'
-// import Treeselect from '@riophae/vue-treeselect'
-// import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import { PHONE_REGEX } from '@/utils/validate'
-// import { LOAD_CHILDREN_OPTIONS, LOAD_ROOT_OPTIONS } from '@riophae/vue-treeselect'
 import { getDeptTree, treeByDeptId } from '@/api/system/dept'
-import { allRoles } from '@/api/system/role'
-import { addUser, editUser } from '@/api/system/user'
+import { addUser, editUser, allRoles } from '@/api/system/user'
 export default {
 
-  //   components: { LayoutContent, Treeselect },
   components: { LayoutContent },
   data() {
     return {
@@ -303,6 +299,7 @@ export default {
       this.$router.push({ name: 'system-user' })
     },
     filterData(instanceId) {
+      this.$refs.roleSelect && this.$refs.roleSelect.blur && this.$refs.roleSelect.blur()
       if (!this.depts) {
         return
       }

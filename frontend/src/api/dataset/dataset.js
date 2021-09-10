@@ -43,6 +43,15 @@ export function addTable(data) {
   })
 }
 
+export function alter(data) {
+  return request({
+    url: '/dataset/table/alter',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
 export function delTable(tableId) {
   return request({
     url: '/dataset/table/delete/' + tableId,
@@ -111,11 +120,12 @@ export function batchEdit(data) {
   })
 }
 
-export function post(url, data, showLoading = true) {
+export function post(url, data, showLoading = true, timeout = 20000) {
   return request({
     url: url,
     method: 'post',
     loading: showLoading,
+    timeout: timeout,
     data
   })
 }

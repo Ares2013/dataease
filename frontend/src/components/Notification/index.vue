@@ -53,17 +53,18 @@
           class-name="notification"
           icon-class="notification"
         />
-        <span v-if="paginationConfig.total" class="msg-number">{{ paginationConfig.total }}</span>
+        <span v-if="count || paginationConfig.total" class="msg-number">{{ count || paginationConfig.total }}</span>
       </div>
     </div>
   </el-popover>
 </template>
 
 <script>
-import { query, updateStatus } from '@/api/system/msg'
+import { query, updateStatus, unReadCount } from '@/api/system/msg'
 import { getTypeName, loadMsgTypes } from '@/utils/webMsg'
 import { mapGetters } from 'vuex'
 import bus from '@/utils/bus'
+import { getToken } from '@/utils/auth'
 export default {
   data() {
     return {
@@ -75,21 +76,30 @@ export default {
         pageSize: 5,
         total: 0
       },
-      timer: null
+      timer: null,
+      count: 0
     }
   },
   computed: {
     ...mapGetters([
-      'permission_routes'
+      'permission_routes',
+      'user'
     ])
+  },
+  watch: {
+    'visible': function(newV, oldV) {
+      if (newV && !oldV) {
+        this.search()
+      }
+    }
   },
   created() {
     // 先加载消息类型
     loadMsgTypes()
-    this.search()
+    this.queryCount()
     // 每30s定时刷新拉取消息
     this.timer = setInterval(() => {
-      this.search()
+      this.queryCount()
     }, 30000)
   },
   mounted() {
@@ -104,33 +114,38 @@ export default {
     this.timer && clearInterval(this.timer)
   },
   methods: {
-    // handClick(lang) {
-    //   console.log(lang)
-    // },
+
     showDetail(row) {
       const param = { ...{ msgNotification: true, msgType: row.typeId, sourceParam: row.param }}
       this.visible = false
-      //   if (this.$route && this.$route.name && this.$route.name.includes('panel') && row.type === 0) {
-      //     bus.$emit('to-msg-share', param)
-      //   } else if (this.$route && this.$route.name && this.$route.name.includes('dataset') && row.type === 1) {
-      //     bus.$emit('to-msg-dataset', param)
-      //   } else {
-      //     this.$router.push({ name: row.router, params: param })
-      //   }
+
       if (this.$route && this.$route.name && this.$route.name === row.router) {
         // 如果当前路由就是目标路由 那么使用router.push页面不会刷新 这时候要使用事件方式
         row.callback && bus.$emit(row.callback, param)
+        row.status || this.setReaded(row.msgId)
       } else {
-        this.$router.push({ name: row.router, params: param })
+        if (this.hasPermissionRoute(row.router)) {
+          this.$router.push({ name: row.router, params: param })
+          row.status || this.setReaded(row.msgId)
+          return
+        }
+        this.$warning(this.$t('commons.no_target_permission'))
       }
-
-      row.status || this.setReaded(row.msgId)
     },
     remove(row) {
 
     },
     msgSetting() {
 
+    },
+    hasPermissionRoute(name, permission_routes) {
+      permission_routes = permission_routes || this.permission_routes
+      for (let index = 0; index < permission_routes.length; index++) {
+        const route = permission_routes[index]
+        if (route.name && route.name === name) return true
+        if (route.children && this.hasPermissionRoute(name, route.children)) return true
+      }
+      return false
     },
     showMore() {
       const routerName = 'sys-msg-web-all'
@@ -150,6 +165,31 @@ export default {
       this.$store.commit('permission/SET_CURRENT_ROUTES', route)
       // this.setSidebarHide(route)
     },
+    queryCount() {
+      const token = getToken()
+
+      if (!token || token === 'null' || token === 'undefined' || !this.user || !this.user.userId) {
+        this.timer && clearInterval(this.timer)
+        const message = this.$t('login.tokenError')
+        this.$alert(message, {
+          confirmButtonText: this.$t('login.re_login'),
+          showClose: false,
+          callback: function(action, instance) {
+            if (action === 'confirm') {
+              this.$store.dispatch('user/logout').then(() => {
+                location.reload()
+              })
+            }
+          }.bind(this)
+        })
+      }
+      const param = {
+        userId: this.user.userId
+      }
+      unReadCount(param).then(res => {
+        this.count = res.data
+      })
+    },
     search() {
       const param = {
         status: false,
@@ -159,6 +199,11 @@ export default {
       query(currentPage, pageSize, param).then(response => {
         this.data = response.data.listObject
         this.paginationConfig.total = response.data.itemCount
+      }).catch(() => {
+        const token = getToken()
+        if (!token || token === 'null' || token === 'undefined') {
+          this.timer && clearInterval(this.timer)
+        }
       })
     },
     getTypeName(value) {
@@ -184,10 +229,10 @@ export default {
     line-height: 14px;
     display: inline-block;
     position: fixed;
-    right: 155px;
+    right: 178px;
     top: 8px;
     background: red;
-    color: #fff;
+    // color: #fff;
     border-radius: 17px;
     padding: 4px 7px;
     font-size: 16px;

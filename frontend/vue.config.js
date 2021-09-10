@@ -2,6 +2,8 @@
 const path = require('path')
 const defaultSettings = require('./src/settings.js')
 
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
@@ -27,6 +29,7 @@ module.exports = {
     },
     before: require('./mock/mock-server.js')
   },
+
   pages: {
     index: {
       entry: 'src/main.js',
@@ -37,6 +40,11 @@ module.exports = {
       entry: 'src/link/link.js',
       template: 'public/link.html',
       filename: 'link.html'
+    },
+    nolic: {
+      entry: 'src/nolic/nolic.js',
+      template: 'public/nolic.html',
+      filename: 'nolic.html'
     }
   },
   configureWebpack: {
@@ -46,7 +54,15 @@ module.exports = {
       alias: {
         '@': resolve('src')
       }
-    }
+    },
+    plugins: [
+      new CopyWebpackPlugin([
+        {
+          from: path.join(__dirname, 'static'),
+          to: path.join(__dirname, 'dist/static')
+        }
+      ])
+    ]
   },
   chainWebpack: config => {
     config.module.rules.delete('svg') // 删除默认配置中处理svg,

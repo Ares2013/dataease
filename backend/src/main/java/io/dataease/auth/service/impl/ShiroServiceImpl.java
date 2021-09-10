@@ -20,6 +20,8 @@ public class ShiroServiceImpl implements ShiroService {
         // 配置过滤:不会被拦截的链接 -> 放行 start ----------------------------------------------------------
         // 放行Swagger2页面，需要放行这些
 
+        filterChainDefinitionMap.put("/doc.html**","doc");
+        filterChainDefinitionMap.put("/deApi**",ANON);
         filterChainDefinitionMap.put("/swagger-ui.html",ANON);
         filterChainDefinitionMap.put("/swagger-ui/**",ANON);
         filterChainDefinitionMap.put("/swagger/**",ANON);
@@ -27,6 +29,7 @@ public class ShiroServiceImpl implements ShiroService {
         filterChainDefinitionMap.put("/swagger-resources/**",ANON);
         filterChainDefinitionMap.put("/v2/**",ANON);
         filterChainDefinitionMap.put("/v3/**",ANON);
+
         filterChainDefinitionMap.put("/static/**", ANON);
         filterChainDefinitionMap.put("/css/**", ANON);
         filterChainDefinitionMap.put("/js/**", ANON);
@@ -41,10 +44,11 @@ public class ShiroServiceImpl implements ShiroService {
 
         //验证链接
         filterChainDefinitionMap.put("/api/link/validate**", ANON);
-        filterChainDefinitionMap.put("/panel/group/findOne/**", ANON);
-        filterChainDefinitionMap.put("/chart/view/getData/**", ANON);
+        filterChainDefinitionMap.put("/api/map/areaEntitys/**", ANON);
+        //未读消息数量
+        filterChainDefinitionMap.put("/api/sys_msg/unReadCount", ANON);
 
-
+        filterChainDefinitionMap.put("/**/*.json", ANON);
         filterChainDefinitionMap.put("/system/ui/**", ANON);
         filterChainDefinitionMap.put("/**/*.js", ANON);
         filterChainDefinitionMap.put("/**/*.css", ANON);
@@ -54,14 +58,23 @@ public class ShiroServiceImpl implements ShiroService {
         filterChainDefinitionMap.put("/api/auth/login", ANON);
         filterChainDefinitionMap.put("/api/auth/logout", ANON);
         filterChainDefinitionMap.put("/api/auth/validateName", ANON);
+        filterChainDefinitionMap.put("/api/auth/isOpenLdap", ANON);
         filterChainDefinitionMap.put("/unauth", ANON);
         filterChainDefinitionMap.put("/display/**", ANON);
         filterChainDefinitionMap.put("/tokenExpired", ANON);
         filterChainDefinitionMap.put("/downline", ANON);
         filterChainDefinitionMap.put("/common-files/**", ANON);
+        filterChainDefinitionMap.put("/linkage/getPanelAllLinkageInfo/**", ANON);
         filterChainDefinitionMap.put("/api/auth/logout", "logout");
+
+        filterChainDefinitionMap.put("/api/link/resourceDetail/**", "link");
+        filterChainDefinitionMap.put("/api/link/viewDetail/**", "link");
+
+
         filterChainDefinitionMap.put("/**", "authc");
+
         filterChainDefinitionMap.put("/**", "jwt");
+
         return filterChainDefinitionMap;
     }
     

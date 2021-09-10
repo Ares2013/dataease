@@ -4,9 +4,7 @@ import io.dataease.datasource.dto.TableFiled;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ExcelReaderUtil {
     //excel2003扩展名
@@ -48,17 +46,18 @@ public class ExcelReaderUtil {
             ExcelXlsReader excelXls=new ExcelXlsReader();
             excelXls.process(inputStream);
             System.out.println(excelXls.totalSheets.size());
-            System.out.println(excelXls.totalSheets.get(0).getSheetName());
+            System.out.println(excelXls.totalSheets.get(0).getExcelLable());
             for (TableFiled field : excelXls.totalSheets.get(0).getFields()) {
                 System.out.println(new Gson().toJson(field));
             }
             System.out.println(excelXls.totalSheets.get(0).getData().get(0));
-
+            System.out.println(excelXls.totalSheets.get(0).getData().get(1));
+            System.out.println(excelXls.totalSheets.get(0).getData().get(2));
         } else if (fileName.endsWith(EXCEL07_EXTENSION)) {//处理excel2007文件
             ExcelXlsxReader excelXlsxReader = new ExcelXlsxReader();
             excelXlsxReader.process(inputStream);
             System.out.println(excelXlsxReader.totalSheets.size());
-            System.out.println(excelXlsxReader.totalSheets.get(0).getSheetName());
+            System.out.println(excelXlsxReader.totalSheets.get(0).getExcelLable());
             for (TableFiled field : excelXlsxReader.totalSheets.get(0).getFields()) {
                 System.out.println(new Gson().toJson(field));
             }
@@ -70,6 +69,7 @@ public class ExcelReaderUtil {
     }
 
     public static void main(String[] args) throws Exception {
-        ExcelReaderUtil.readExcel("111.xls", new FileInputStream("/Users/taojinlong/Desktop/111.xls"));
+        String file ="Metersphere_case_DataEase功能用例.xlsx";
+        ExcelReaderUtil.readExcel(file, new FileInputStream("/Users/taojinlong/Desktop/" + file));
     }
 }

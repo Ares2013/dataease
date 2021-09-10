@@ -133,6 +133,12 @@ export default {
         this.$warning(this.$t('chart.name_can_not_empty'))
         return false
       }
+
+      if (this.editPanel.panelInfo.name.length > 50) {
+        this.$warning(this.$t('commons.char_can_not_more_50'))
+        return false
+      }
+
       if (!this.editPanel.panelInfo.panelData && this.editPanel.optType === 'new' && this.inputType === 'copy') {
         this.$warning(this.$t('chart.template_can_not_empty'))
         return false

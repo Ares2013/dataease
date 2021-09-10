@@ -21,7 +21,7 @@
     <de-container>
       <!--左侧导航栏-->
       <de-aside-container class="ms-aside-container">
-        <div style="width: 60px; left: 0px; top: 0px; bottom: 0px;  position: absolute">
+        <div v-if="!linkageSettingStatus" style="width: 60px; left: 0px; top: 0px; bottom: 0px;  position: absolute">
           <div style="width: 60px;height: 100%;overflow: hidden auto;position: relative;margin: 0px auto; font-size: 14px">
             <!-- 视图图表 start -->
             <div class="button-div-class" style=" width: 24px;height: 24px;text-align: center;line-height: 1;position: relative;margin: 16px auto 0px;">
@@ -96,8 +96,8 @@
 
         <div
           id="canvasInfo"
+          :class="{'style-hidden':canvasStyleData.selfAdaption}"
           class="content this_canvas"
-          :class="{'border-hidden':canvasStyleData.selfAdaption}"
           @drop="handleDrop"
           @dragover="handleDragOver"
           @mousedown="handleMouseDown"
@@ -116,7 +116,7 @@
 
     <el-dialog
       v-if="filterVisible && panelInfo.id"
-      :title="$t('panel.module')"
+      :title="(currentWidget && currentWidget.getLeftPanel && currentWidget.getLeftPanel().label ? $t(currentWidget.getLeftPanel().label) : '') + $t('panel.module')"
       :visible.sync="filterVisible"
       custom-class="de-filter-dialog"
     >
@@ -192,6 +192,7 @@ import { mapState } from 'vuex'
 import { uuid } from 'vue-uuid'
 import Toolbar from '@/components/canvas/components/Toolbar'
 import { findOne } from '@/api/panel/panel'
+import { getPanelAllLinkageInfo } from '@/api/panel/linkage'
 import PreviewFullScreen from '@/components/canvas/components/Editor/PreviewFullScreen'
 import Preview from '@/components/canvas/components/Editor/Preview'
 import AttrList from '@/components/canvas/components/AttrList'
@@ -213,8 +214,8 @@ import toast from '@/components/canvas/utils/toast'
 import { commonStyle, commonAttr } from '@/components/canvas/custom-component/component-list'
 import generateID from '@/components/canvas/utils/generateID'
 import RectangleAttr from '@/components/canvas/components/RectangleAttr'
-import TextAttr from '@/views/Tinymce/TextAttr'
-import FilterTextAttr from '@/views/Tinymce/FilterTextAttr'
+import TextAttr from '@/components/canvas/components/TextAttr'
+import FilterTextAttr from '@/components/canvas/components/FilterTextAttr'
 
 export default {
   name: 'PanelEdit',
@@ -290,7 +291,8 @@ export default {
       'isClickComponent',
       'canvasStyleData',
       'curComponentIndex',
-      'componentData'
+      'componentData',
+      'linkageSettingStatus'
     ])
   },
 
@@ -309,6 +311,7 @@ export default {
       this.init(newVal.id)
     },
     '$store.state.styleChangeTimes'() {
+      // console.log('styleChangeTimes' + this.$store.state.styleChangeTimes)
       if (this.$store.state.styleChangeTimes > 0) {
         this.destroyTimeMachine()
         this.recordStyleChange(this.$store.state.styleChangeTimes)
@@ -322,6 +325,7 @@ export default {
     listenGlobalKeyDown()
 
     this.$store.commit('setCurComponent', { component: null, index: null })
+    this.$store.commit('clearLinkageSettingInfo', false)
   },
   mounted() {
     // this.insertToBody()
@@ -361,6 +365,7 @@ export default {
         const componentDatas = JSON.parse(componentDataTemp)
         componentDatas.forEach(item => {
           item.filters = (item.filters || [])
+          item.linkageFilters = (item.linkageFilters || [])
         })
         this.$store.commit('setComponentData', this.resetID(componentDatas))
         // this.$store.commit('setComponentData', this.resetID(JSON.parse(componentDataTemp)))
@@ -373,12 +378,17 @@ export default {
           const componentDatas = JSON.parse(response.data.panelData)
           componentDatas.forEach(item => {
             item.filters = (item.filters || [])
+            item.linkageFilters = (item.linkageFilters || [])
           })
           this.$store.commit('setComponentData', this.resetID(componentDatas))
           //   this.$store.commit('setComponentData', this.resetID(JSON.parse(response.data.panelData)))
           const panelStyle = JSON.parse(response.data.panelStyle)
           this.$store.commit('setCanvasStyle', panelStyle)
-          this.$store.commit('recordSnapshot')// 记录快照
+          this.$store.commit('recordSnapshot', 'init')// 记录快照
+          // 刷新联动信息
+          getPanelAllLinkageInfo(panelId).then(rsp => {
+            this.$store.commit('setNowPanelTrackInfo', rsp.data)
+          })
         })
       }
     },
@@ -461,6 +471,7 @@ export default {
             }
             component.propValue = propValue
             component.filters = []
+            component.linkageFilters = []
           }
         })
       } else {
@@ -483,7 +494,7 @@ export default {
       component.style.left = this.getPositionX(e.layerX)
       component.id = newComponentId
       this.$store.commit('addComponent', { component })
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'handleDrop')
       this.clearCurrentInfo()
 
       // // 文字组件
@@ -535,7 +546,7 @@ export default {
 
       //   this.$store.commit('addComponent', { component })
       this.$store.commit('setComponentWithId', component)
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'sureFilter')
       this.cancelFilter()
     },
     reFreshComponent(component) {
@@ -615,7 +626,7 @@ export default {
             }
           })
 
-          this.$store.commit('recordSnapshot')
+          this.$store.commit('recordSnapshot', 'handleFileChange')
         }
 
         img.src = fileResult
@@ -658,6 +669,7 @@ export default {
           }
           component.propValue = propValue
           component.filters = []
+          component.linkageFilters = []
         }
       })
 
@@ -666,7 +678,7 @@ export default {
       component.style.left = 600
       component.id = newComponentId
       this.$store.commit('addComponent', { component })
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'newViewInfo')
       this.clearCurrentInfo()
       this.$store.commit('setCurComponent', { component: component, index: this.componentData.length - 1 })
 
@@ -692,7 +704,7 @@ export default {
     recordStyleChange(index) {
       this.timeMachine = setTimeout(() => {
         if (index === this.$store.state.styleChangeTimes) {
-          this.$store.commit('recordSnapshot')
+          this.$store.commit('recordSnapshot', 'recordStyleChange')
           this.$store.state.styleChangeTimes = 0
         }
         this.destroyTimeMachine()
@@ -826,10 +838,8 @@ export default {
     padding: 1px 15px !important;
   }
 }
-
-.border-hidden {
-  overflow: hidden;
-
-}
+  .style-hidden{
+    overflow: hidden;
+  }
 
 </style>

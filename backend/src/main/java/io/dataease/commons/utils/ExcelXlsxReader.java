@@ -1,13 +1,9 @@
 package io.dataease.commons.utils;
-import com.google.gson.Gson;
 import io.dataease.datasource.dto.TableFiled;
 import io.dataease.dto.dataset.ExcelSheetData;
 import io.dataease.i18n.Translator;
-import io.dataease.service.message.MsgAop;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStringsTable;
@@ -150,6 +146,7 @@ public class ExcelXlsxReader extends DefaultHandler {
         parser.setContentHandler(this);
         XSSFReader.SheetIterator sheets = (XSSFReader.SheetIterator) xssfReader.getSheetsData();
         while (sheets.hasNext()) { //遍历sheet
+
             curRow = 1; //标记初始行为第一行
             fields.clear();
             data.clear();
@@ -159,7 +156,7 @@ public class ExcelXlsxReader extends DefaultHandler {
 
             ExcelSheetData excelSheetData = new ExcelSheetData();
             excelSheetData.setData(new ArrayList<>(data));
-            excelSheetData.setSheetName(sheets.getSheetName());
+            excelSheetData.setExcelLable(sheets.getSheetName());
             excelSheetData.setFields(new ArrayList<>(fields));
             totalSheets.add(excelSheetData);
 
@@ -240,6 +237,14 @@ public class ExcelXlsxReader extends DefaultHandler {
         if (isTElement) {//这个程序没经过
             //将单元格内容加入rowlist中，在这之前先去掉字符串前后的空白符
             String value = lastIndex.trim();
+            if(curRow==1){
+                TableFiled tableFiled = new TableFiled();
+                tableFiled.setFieldType("TEXT");
+                tableFiled.setFieldSize(65533);
+                tableFiled.setFieldName(value);
+                tableFiled.setRemarks(value);
+                this.fields.add(tableFiled);
+            }
             cellList.add(curCol, value);
             curCol++;
             isTElement = false;
@@ -251,17 +256,29 @@ public class ExcelXlsxReader extends DefaultHandler {
             //v => 单元格的值，如果单元格是字符串，则v标签的值为该字符串在SST中的索引
             String value = this.getDataValue(lastIndex.trim(), "");//根据索引值获取对应的单元格值
             if (preRef == null) {
-                preRef = ref;
-            }
-            //补全单元格之间的空单元格
-            if (!ref.equals(preRef)) {
-                int len = countNullCell(ref, preRef);
-                for (int i = 0; i < len; i++) {
+                preRef = "A" + curRow;
+                if(!preRef.equalsIgnoreCase(ref)){
                     cellList.add(curCol, "");
                     curCol++;
                 }
             }
-            cellList.add(curCol, value);
+
+            //补全单元格之间的空单元格
+            if (!"A".equals(preRef.substring(0, 1)) && curRow==1 && preRef.equalsIgnoreCase(ref)) {
+                throw new RuntimeException(Translator.get("i18n_excel_empty_column"));
+            }else if (!ref.equals(preRef)) {
+                int len = countNullCell(ref, preRef);
+                for (int i = 0; i < len; i++) {
+                    if(curCol < this.fields.size()){
+                        cellList.add(curCol, "");
+                        curCol++;
+                    }
+                }
+            }
+
+            if(curCol < this.fields.size()){
+                cellList.add(curCol, value);
+            }
             curCol++;
             //如果里面某个单元格含有值，则标识该行不为空行
             if (value != null && !"".equals(value)) {
@@ -274,14 +291,6 @@ public class ExcelXlsxReader extends DefaultHandler {
                 //默认第一行为表头，以该行单元格数目为最大数目
                 if (curRow == 1) {
                     maxRef = ref;
-                }
-                //补全一行尾部可能缺失的单元格
-                if (maxRef != null) {
-                    int len = countNullCell(maxRef, ref);
-                    for (int i = 0; i <= len; i++) {
-                        cellList.add(curCol, "");
-                        curCol++;
-                    }
                 }
                 if(curRow>1){
                     List<String> tmp = new ArrayList<>(cellList);
@@ -317,7 +326,7 @@ public class ExcelXlsxReader extends DefaultHandler {
         } else if ("s".equals(cellType)) { //处理字符串
             nextDataType = CellDataType.SSTINDEX;
         } else if ("str".equals(cellType)) {
-            nextDataType = CellDataType.FORMULA;
+            nextDataType = CellDataType.SSTINDEX;
         }
 
         String cellStyleStr = attributes.getValue("s"); //
@@ -328,7 +337,7 @@ public class ExcelXlsxReader extends DefaultHandler {
             formatString = style.getDataFormatString();
             short format = this.formatIndex;
             if (format == 14 || format == 31 || format == 57 ||format == 59||
-                    format == 58 || (176 <= format && format <= 178)
+                    format == 58 || (176 <= format && format < 178)
                     || (182 <= format && format <= 196) ||
                     (210 <= format && format <= 213) || (208 == format))
             { // 日期
@@ -381,7 +390,7 @@ public class ExcelXlsxReader extends DefaultHandler {
 
                 break;
             case NUMBER: //数字
-                if (formatString != null) {
+                if (formatString != null && isDateFormat) {
                     thisStr = formatter.formatRawCellContents(Double.parseDouble(value), formatIndex, formatString).trim();
                 } else {
                     thisStr = value;
@@ -405,7 +414,7 @@ public class ExcelXlsxReader extends DefaultHandler {
         }
         if(curRow==1){
             TableFiled tableFiled = new TableFiled();
-            tableFiled.setFieldType(type);
+            tableFiled.setFieldType("TEXT");
             tableFiled.setFieldSize(65533);
             tableFiled.setFieldName(thisStr);
             tableFiled.setRemarks(thisStr);
@@ -414,7 +423,26 @@ public class ExcelXlsxReader extends DefaultHandler {
             if(CollectionUtils.isEmpty(this.getFields())){
                 throw new RuntimeException(Translator.get("i18n_excel_header_empty"));
             }
-            this.getFields().get(curCol).setFieldType(type);
+            if(curCol >= this.fields.size()){
+                return thisStr;
+            }
+            if(curRow==2){
+                this.getFields().get(curCol).setFieldType(type);
+            }else {
+                if(type.equalsIgnoreCase("TEXT")){
+                    this.getFields().get(curCol).setFieldType(type);
+                }
+                if(type.equalsIgnoreCase("DOUBLE") && this.getFields().get(curCol).getFieldType().equalsIgnoreCase("LONG")){
+                    this.getFields().get(curCol).setFieldType(type);
+                }
+                if(type.equalsIgnoreCase("DATETIME")){
+                    this.getFields().get(curCol).setFieldType(type);
+                }
+            }
+        }
+        if(curCol==1){
+            System.out.println(type);
+            System.out.println(nextDataType);
         }
         return thisStr;
     }
@@ -429,9 +457,7 @@ public class ExcelXlsxReader extends DefaultHandler {
                 thisStr = String.valueOf(Double.valueOf(thisStr)/100);
             }
             Long.valueOf(thisStr);
-            if(this.getFields().get(curCol).getFieldType().equalsIgnoreCase("TEXT")){
-                return "LONG";
-            }
+            return "LONG";
         }catch (Exception e){
             try {
                 Double.valueOf(thisStr);

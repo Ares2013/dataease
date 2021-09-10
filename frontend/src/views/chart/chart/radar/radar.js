@@ -12,6 +12,7 @@ export function baseRadarOption(chart_option, chart) {
     // size
     if (customAttr.size) {
       chart_option.radar.shape = customAttr.size.radarShape
+      chart_option.radar.radius = (customAttr.size.radarSize ? customAttr.size.radarSize : 80) + '%'
     }
     // tooltip
     if (customAttr.tooltip) {
@@ -27,6 +28,9 @@ export function baseRadarOption(chart_option, chart) {
     const maxValues = []
     for (let i = 0; i < chart.data.series.length; i++) {
       const y = chart.data.series[i]
+      if (y.data.length === 0) {
+        continue
+      }
       // color
       y.itemStyle = {
         color: hexColorToRGBA(customAttr.color.colors[i % 9], customAttr.color.alpha)
@@ -36,8 +40,20 @@ export function baseRadarOption(chart_option, chart) {
         y.label = customAttr.label
       }
       chart_option.legend.data.push(y.name)
+
+      const d = {
+        name: y.name,
+        type: 'radar',
+        data: [
+          {
+            value: y.data,
+            name: y.name,
+            label: y.label
+          }
+        ]
+      }
       y.value = JSON.parse(JSON.stringify(y.data))
-      chart_option.series[0].data.push(y)
+      chart_option.series.push(d)
 
       maxValues.push(Math.max.apply(null, y.value))
     }

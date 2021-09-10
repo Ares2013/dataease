@@ -12,13 +12,20 @@
     >
       <template #toolbar>
         <el-button v-permission="['user:add']" icon="el-icon-circle-plus-outline" @click="create">{{ $t('user.create') }}</el-button>
+
+        <!-- <el-button v-permission="['user:import']" icon="el-icon-download" @click="importLdap">{{ $t('user.import_ldap') }}</el-button> -->
+        <el-button v-if="openLdap" v-permission="['user:import']" icon="el-icon-download" @click="importLdap">{{ $t('user.import_ldap') }}</el-button>
       </template>
 
       <el-table-column prop="username" label="ID" />
-      <el-table-column prop="nickName" sortable="custom" :label="$t('commons.nick_name')" />
-      <el-table-column prop="gender" :label="$t('commons.gender')" />
+      <el-table-column :show-overflow-tooltip="true" prop="nickName" sortable="custom" :label="$t('commons.nick_name')" />
+      <!-- <el-table-column prop="gender" :label="$t('commons.gender')" width="60" /> -->
+      <el-table-column prop="from" :label="$t('user.source')" width="80">
+        <template slot-scope="scope">
+          <div>{{ scope.row.from === 0 ? 'LOCAL' : 'LDAP' }}</div>
+        </template>
+      </el-table-column>
 
-      <el-table-column :show-overflow-tooltip="true" prop="phone" :label="$t('commons.phone')" />
       <el-table-column :show-overflow-tooltip="true" prop="email" :label="$t('commons.email')" />
       <el-table-column :show-overflow-tooltip="true" prop="dept" sortable="custom" :label="$t('commons.organization')">
         <template slot-scope="scope">
@@ -43,12 +50,12 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="status" sortable="custom" :label="$t('commons.status')">
+      <el-table-column prop="status" sortable="custom" :label="$t('commons.status')" width="80">
         <template v-slot:default="scope">
           <el-switch v-model="scope.row.enabled" :active-value="1" :inactive-value="0" :disabled="!checkPermission(['user:edit']) || scope.row.isAdmin" inactive-color="#DCDFE6" @change="changeSwitch(scope.row)" />
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" sortable="custom" :label="$t('commons.create_time')">
+      <el-table-column :show-overflow-tooltip="true" prop="createTime" sortable="custom" :label="$t('commons.create_time')" width="180">
         <template v-slot:default="scope">
           <span>{{ scope.row.createTime | timestampFormatDate }}</span>
         </template>
@@ -162,15 +169,13 @@
 <script>
 import LayoutContent from '@/components/business/LayoutContent'
 import ComplexTable from '@/components/business/complex-table'
-// import { checkPermission } from '@/utils/permission'
 import { formatCondition, formatQuickCondition, addOrder, formatOrders } from '@/utils/index'
 import { PHONE_REGEX } from '@/utils/validate'
 import { LOAD_CHILDREN_OPTIONS, LOAD_ROOT_OPTIONS } from '@riophae/vue-treeselect'
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
-
-import { userLists, addUser, editUser, delUser, editPassword, editStatus } from '@/api/system/user'
-import { allRoles } from '@/api/system/role'
+import { ldapStatus } from '@/api/user'
+import { userLists, addUser, editUser, delUser, editPassword, editStatus, allRoles } from '@/api/system/user'
 import { getDeptTree, treeByDeptId } from '@/api/system/dept'
 
 export default {
@@ -192,6 +197,7 @@ export default {
           label: this.$t('member.edit_password'), icon: 'el-icon-s-tools', type: 'success', click: this.editPassword,
           show: this.checkPermission(['user:editPwd'])
         }
+
       ],
       searchConfig: {
         useQuickSearch: true,
@@ -202,14 +208,15 @@ export default {
           {
             field: 'u.enabled',
             label: this.$t('commons.status'),
-            component: 'FuComplexSelect',
+            component: 'DeComplexSelect',
             options: [
               { label: this.$t('commons.enable'), value: '1' },
               { label: this.$t('commons.disable'), value: '0' }
             ],
             multiple: false
-          }
-        //   { field: 'deptId', label: '组织', component: conditionTable }
+          },
+          { field: 'd.name', label: this.$t('commons.organization'), component: 'DeComplexInput' },
+          { field: 'r.name', label: this.$t('commons.role'), component: 'DeComplexInput' }
         ]
       },
       paginationConfig: {
@@ -298,15 +305,19 @@ export default {
         editPwd: ['user:editPwd']
       },
       orderConditions: [],
-      last_condition: null
+      last_condition: null,
+      openLdap: false
     }
   },
   mounted() {
-    // this.form = Object.assign({}, this.defaultForm);
     this.allRoles()
     this.search()
   },
-
+  beforeCreate() {
+    ldapStatus().then(res => {
+      this.openLdap = res.success && res.data
+    })
+  },
   methods: {
     sortChange({ column, prop, order }) {
       this.orderConditions = []
@@ -342,25 +353,14 @@ export default {
     create() {
       this.$router.push({ name: 'system-user-form' })
     },
-    // create() {
-    //   this.depts = null
-    //   this.formType = 'add'
-    //   this.form = Object.assign({}, this.defaultForm)
-    //   this.dialogVisible = true
-    // },
+
     edit(row) {
       this.$router.push({ name: 'system-user-form', params: row })
     },
-    // edit(row) {
-    //   this.depts = null
-    //   this.formType = 'modify'
-    //   this.dialogVisible = true
-    //   this.form = Object.assign({}, row)
-    //   if (this.form.deptId === 0) {
-    //     this.form.deptId = null
-    //   }
-    //   this.initDeptTree()
-    // },
+    showAuth(row) {
+      this.$router.push({ name: 'system-user-form', params: row })
+    },
+
     editPassword(row) {
       this.editPasswordVisible = true
       const tempForm = Object.assign({}, row)
@@ -492,6 +492,9 @@ export default {
     },
     btnDisabled(row) {
       return row.userId === 1
+    },
+    importLdap() {
+      this.$router.push({ name: 'system-user-import' })
     }
   }
 }

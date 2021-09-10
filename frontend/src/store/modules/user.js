@@ -18,7 +18,8 @@ const getDefaultState = () => {
     // 当前用户拥有哪些资源权限
     permissions: [],
     language: getLanguage(),
-    uiInfo: null
+    uiInfo: null,
+    linkToken: null
   }
 }
 
@@ -30,6 +31,9 @@ const mutations = {
   },
   SET_TOKEN: (state, token) => {
     state.token = token
+  },
+  SET_LINK_TOKEN: (state, linkToken) => {
+    state.linkToken = linkToken
   },
   SET_NAME: (state, name) => {
     state.name = name
@@ -67,9 +71,9 @@ const mutations = {
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    const { username, password } = userInfo
+    const { username, password, loginType } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+      login({ username: username.trim(), password: password, loginType: loginType }).then(response => {
         const { data } = response
         commit('SET_TOKEN', data.token)
         commit('SET_LOGIN_MSG', null)
@@ -165,6 +169,9 @@ const actions = {
       commit('SET_LANGUAGE', language)
       router.go(0)
     })
+  },
+  setLinkToken({ commit }, linkToken) {
+    commit('SET_LINK_TOKEN', linkToken)
   }
 }
 

@@ -55,6 +55,7 @@ import { query, updateStatus } from '@/api/system/msg'
 import { msgTypes, getTypeName, loadMsgTypes } from '@/utils/webMsg'
 import bus from '@/utils/bus'
 import { addOrder, formatOrders } from '@/utils/index'
+import { mapGetters } from 'vuex'
 export default {
   components: {
     LayoutContent,
@@ -81,6 +82,11 @@ export default {
       },
       orderConditions: []
     }
+  },
+  computed: {
+    ...mapGetters([
+      'permission_routes'
+    ])
   },
   mounted() {
     this.search()
@@ -120,8 +126,21 @@ export default {
     },
     toDetail(row) {
       const param = { ...{ msgNotification: true, msgType: row.typeId, sourceParam: row.param }}
-      this.$router.push({ name: row.router, params: param })
-      row.status || this.setReaded(row)
+      if (this.hasPermissionRoute(row.router)) {
+        this.$router.push({ name: row.router, params: param })
+        row.status || this.setReaded(row)
+        return
+      }
+      this.$warning(this.$t('commons.no_target_permission'))
+    },
+    hasPermissionRoute(name, permission_routes) {
+      permission_routes = permission_routes || this.permission_routes
+      for (let index = 0; index < permission_routes.length; index++) {
+        const route = permission_routes[index]
+        if (route.name && route.name === name) return true
+        if (route.children && this.hasPermissionRoute(name, route.children)) return true
+      }
+      return false
     },
     // 设置已读
     setReaded(row) {
@@ -161,8 +180,8 @@ export default {
 
   >>>.el-radio-button__orig-radio:checked+.el-radio-button__inner {
     color: #fff;
-    background-color: #0a7be0;
-    border-color: #0a7be0;
+    // background-color: #0a7be0;
+    // border-color: #0a7be0;
     -webkit-box-shadow: 0px 0 0 0 #0a7be0;
     box-shadow: 0px 0 0 0 #0a7be0;
   }
