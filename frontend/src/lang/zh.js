@@ -130,6 +130,8 @@ export default {
     re_login: '重新登录'
   },
   commons: {
+    search: '搜索',
+    folder: '目录',
     no_target_permission: '没有权限',
     success: '成功',
     switch_lang: '切换语言成功',
@@ -393,6 +395,10 @@ export default {
     cancel: '取 消',
     confirm: '确 定'
   },
+  detabs: {
+    eidttitle: '编辑标题',
+    selectview: '选择视图'
+  },
   example: {
     warning: '创建和编辑页面是不能被 keep-alive 缓存的，因为keep-alive 的 include 目前不支持根据路由来缓存，所以目前都是基于 component name 来进行缓存的。如果你想类似的实现缓存效果，可以使用 localStorage 等浏览器缓存方案。或者不要使用 keep-alive 的 include，直接缓存所有页面。详情见'
   },
@@ -430,6 +436,11 @@ export default {
     tagsView: '开启 Tags-View',
     fixedHeader: '固定 Header',
     sidebarLogo: '侧边栏 Logo'
+  },
+  sysParams: {
+    display: '显示设置',
+    ldap: 'LDAP设置',
+    oidc: 'OIDC设置'
   },
   license: {
     i18n_no_license_record: '没有 License 记录',
@@ -518,7 +529,7 @@ export default {
     input_url_placeholder: '请输入LDAP地址 (如 ldap://localhost:389)',
     input_ou_placeholder: '输入用户OU (使用|分隔各OU)',
     input_filter_placeholder: '输入过滤器 [可能的选项是cn或uid或sAMAccountName={0}, 如：(uid={0})]',
-    input_mapping_placeholder: '如：{"username":"uid","name":"sn","email":"mail"}, username映射的选项可能是cn或uid或sAMAccountName',
+    input_mapping_placeholder: '如：{"userName":"uid","nickName":"cn","email":"mail"}, username映射的选项可能是cn或uid或sAMAccountName',
     test_connect: '测试连接',
     test_login: '测试登录',
     edit: '编辑',
@@ -529,6 +540,17 @@ export default {
     filter_cannot_be_empty: 'LDAP 用户过滤器不能为空',
     mapping_cannot_be_empty: 'LDAP 用户属性映射不能为空',
     password_cannot_be_empty: 'LDAP 密码不能为空'
+  },
+  oidc: {
+    auth_endpoint: '请输入AuthEndpoint',
+    token_endpoint: '请输入TokenEndpoint',
+    userinfo_endpoint: '请输入UserinfoEndpoint',
+    logout_endpoint: '请输入logoutEndpoint',
+    clientId: '请输入ClientId',
+    secret: '请输入Secret',
+    scope: '请输入scope',
+    redirectUrl: '请输入redirectUrl',
+    open: '启用OIDC认证'
   },
   role: {
     menu_authorization: '菜单授权',
@@ -906,7 +928,8 @@ export default {
     liquid_shape_diamond: '菱形',
     liquid_shape_triangle: '三角形',
     liquid_shape_pin: '气球',
-    liquid_shape_rect: '矩形'
+    liquid_shape_rect: '矩形',
+    dimension_or_quota: '维度或指标'
   },
   dataset: {
     sheet_warn: '有多个 Sheet 页，默认抽取第一个',
@@ -1087,11 +1110,14 @@ export default {
     create: '新建数据源',
     type: '类型',
     please_choose_type: '请选择数据源类型',
+    please_choose_data_type: '请选择计算模式',
     data_base: '数据库名称',
     user_name: '用户名',
     password: '密码',
     host: '主机名/IP地址',
     port: '端口',
+    datasource_url: '地址',
+    please_input_datasource_url: '请输入 Elasticsearch 地址，如: http://es_host:es_port',
     please_input_data_base: '请输入数据库名称',
     please_select_oracle_type: '选择连接类型',
     please_input_user_name: '请输入用户名',
@@ -1128,7 +1154,11 @@ export default {
     please_input_acquire_increment: '请输入增长数',
     please_input_connect_timeout: '请输入连接超时(秒)',
     no_less_then_0: '高级设置中的参数不能小于零',
-    priority: '高级设置'
+    priority: '高级设置',
+    data_mode: '数据模式',
+    direct: '直连模式',
+    extract: '抽取模式',
+    all_compute_mode: '直连、抽取模式'
   },
   pblink: {
     key_pwd: '请输入密码打开链接',
@@ -1182,6 +1212,8 @@ export default {
     gap: '有间隙',
     no_gap: '无间隙',
     component_gap: '组件间隙',
+    refresh_time: '刷新时间',
+    minute: '分钟',
     photo: '图片',
     default_panel: '默认仪表板',
     create_public_links: '创建公共链接',

@@ -23,7 +23,7 @@ import { mapState } from 'vuex'
 import { deepCopy } from '@/components/canvas/utils/utils'
 
 export default {
-  name: 'BackgroundSelector',
+  name: 'ComponentGap',
   props: {
   },
   data() {

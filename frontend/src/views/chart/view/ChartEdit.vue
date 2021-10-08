@@ -275,7 +275,8 @@
                       <span v-else-if="view.type && view.type === 'map'">{{ $t('chart.area') }}</span>
                       <span v-else-if="view.type && view.type.includes('treemap')">{{ $t('chart.drag_block_treemap_label') }}</span>
                       /
-                      <span>{{ $t('chart.dimension') }}</span>
+                      <span v-if="view.type && view.type !== 'table-info'">{{ $t('chart.dimension') }}</span>
+                      <span v-else-if="view.type && view.type === 'table-info'">{{ $t('chart.dimension_or_quota') }}</span>
                     </span>
                     <draggable
                       v-model="view.xaxis"
@@ -503,7 +504,7 @@
                   <el-collapse-item v-show="view.type && view.type.includes('radar')" name="split" :title="$t('chart.split')">
                     <split-selector :param="param" class="attr-selector" :chart="chart" @onChangeSplitForm="onChangeSplitForm" />
                   </el-collapse-item>
-                  <el-collapse-item v-show="view.type && view.type !== 'liquid'" name="title" :title="$t('chart.title')">
+                  <el-collapse-item v-show="view.type" name="title" :title="$t('chart.title')">
                     <title-selector :param="param" class="attr-selector" :chart="chart" @onTextChange="onTextChange" />
                   </el-collapse-item>
                   <el-collapse-item v-show="view.type && view.type !== 'map' && !view.type.includes('table') && !view.type.includes('text') && chart.type !== 'treemap' && view.type !== 'liquid'" name="legend" :title="$t('chart.legend')">
@@ -949,6 +950,12 @@ export default {
         })
       }
       view.extStack.forEach(function(ele) {
+        if (!ele.dateStyle || ele.dateStyle === '') {
+          ele.dateStyle = 'y_M_d'
+        }
+        if (!ele.datePattern || ele.datePattern === '') {
+          ele.datePattern = 'date_sub'
+        }
         if (!ele.sort || ele.sort === '') {
           ele.sort = 'none'
         }
@@ -1058,6 +1065,8 @@ export default {
           }
           if (!response.data.drill) {
             this.drillClickDimensionList.splice(this.drillClickDimensionList.length - 1, 1)
+
+            this.resetDrill()
           }
           this.drillFilters = JSON.parse(JSON.stringify(response.data.drillFilters ? response.data.drillFilters : []))
         }).catch(err => {

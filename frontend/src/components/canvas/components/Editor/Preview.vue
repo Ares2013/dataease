@@ -110,12 +110,16 @@ export default {
           }
         }
       }
-      if (this.canvasStyleData.selfAdaption) {
-        style = {
-          overflow: 'hidden',
-          ...style
-        }
-      }
+      // if (this.canvasStyleData.selfAdaption) {
+      //   style = {
+      //     overflow: 'hidden',
+      //     ...style
+      //   }
+      // }
+      // style = {
+      //   overflow-x :'hidden',
+      //   ...style
+      // }
       return style
     },
     // 此处单独计算componentData的值 不放入全局mapState中
@@ -135,32 +139,46 @@ export default {
         this.restore()
       },
       deep: true
+    },
+    canvasStyleData: {
+      handler(newVal, oldVla) {
+        this.canvasStyleDataInit()
+      },
+      deep: true
     }
   },
   mounted() {
     const _this = this
     const erd = elementResizeDetectorMaker()
     // 监听div变动事件
-    erd.listenTo(document.getElementById('canvasInfoTemp'), element => {
+    const tempDom = document.getElementById('canvasInfoTemp')
+    erd.listenTo(tempDom, element => {
       _this.$nextTick(() => {
         _this.restore()
+        //将mainHeight 修改为px 临时解决html2canvas 截图不全的问题
+        _this.mainHeight = tempDom.scrollHeight + 'px!important'
       })
     })
-    // 数据刷新计时器
-    let refreshTime = 300000
-    if (this.canvasStyleData.refreshTime && this.canvasStyleData.refreshTime > 0) {
-      refreshTime = this.canvasStyleData.refreshTime * 1000
-    }
-    this.timer = setInterval(() => {
-      this.searchCount++
-    }, refreshTime)
     eventBus.$on('openChartDetailsDialog', this.openChartDetailsDialog)
     this.$store.commit('clearLinkageSettingInfo', false)
+    this.canvasStyleDataInit()
   },
   beforeDestroy() {
     clearInterval(this.timer)
   },
   methods: {
+    canvasStyleDataInit() {
+      // 数据刷新计时器
+      this.searchCount = 0
+      this.timer && clearInterval(this.timer)
+      let refreshTime = 300000
+      if (this.canvasStyleData.refreshTime && this.canvasStyleData.refreshTime > 0) {
+        refreshTime = this.canvasStyleData.refreshTime * 60000
+      }
+      this.timer = setInterval(() => {
+        this.searchCount++
+      }, refreshTime)
+    },
     changeStyleWithScale,
     getStyle,
     restore() {
@@ -168,10 +186,13 @@ export default {
       const canvasWidth = document.getElementById('canvasInfoTemp').offsetWidth
       this.scaleWidth = canvasWidth * 100 / parseInt(this.canvasStyleData.width)// 获取宽度比
       this.scaleHeight = canvasHeight * 100 / parseInt(this.canvasStyleData.height)// 获取高度比
-      if (this.showType === 'width') {
-        this.scaleHeight = this.scaleWidth
-        this.mainHeight = this.canvasStyleData.height * this.scaleHeight / 100 + 'px'
-      }
+
+      this.scaleHeight = this.scaleWidth
+      // this.mainHeight = this.canvasStyleData.height * this.scaleHeight / 100 + 'px'
+      // if (this.showType === 'width') {
+      //   this.scaleHeight = this.scaleWidth
+      //   this.mainHeight = this.canvasStyleData.height * this.scaleHeight / 100 + 'px'
+      // }
       this.handleScaleChange()
     },
     resetID(data) {
@@ -252,7 +273,7 @@ export default {
   color: #9ea6b2;
 }
 .gap_class{
-  padding:3px;
+  padding:5px;
 }
 .dialog-css>>>.el-dialog__title {
   font-size: 14px;

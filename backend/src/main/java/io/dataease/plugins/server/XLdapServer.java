@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequestMapping("/api/ldap")
+@RequestMapping("/plugin/ldap")
 @RestController
 public class XLdapServer {
 
@@ -30,7 +30,11 @@ public class XLdapServer {
     @PostMapping("/testConn")
     public void testConn() {
         LdapXpackService ldapXpackService = SpringContextUtil.getBean(LdapXpackService.class);
-        ldapXpackService.testConn();
+        try {
+            ldapXpackService.testConn();
+        }catch(Exception e) {
+            throw new RuntimeException(e);
+        } 
     }
 
     @PostMapping("/users")

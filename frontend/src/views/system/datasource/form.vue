@@ -27,8 +27,8 @@
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.host')" prop="configuration.host">
           <el-input v-model="form.configuration.host" autocomplete="off" />
         </el-form-item>
-        <el-form-item v-if="form.configuration.dataSourceType=='es'" :label="$t('datasource.url')" prop="configuration.url">
-          <el-input v-model="form.configuration.url" placeholder="请输入 Elasticsearch 地址，如: http://es_host:es_port" autocomplete="off" />
+        <el-form-item v-if="form.configuration.dataSourceType=='es'" :label="$t('datasource.datasource_url')" prop="configuration.url">
+          <el-input v-model="form.configuration.url" :placeholder="$t('datasource.please_input_datasource_url')"  autocomplete="off" />
         </el-form-item>
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.data_base')" prop="configuration.dataBase">
           <el-input v-model="form.configuration.dataBase" autocomplete="off" />
@@ -39,10 +39,10 @@
           <el-radio v-model="form.configuration.connectionType" label="serviceName">{{ $t('datasource.oracle_service_name') }}</el-radio>
         </el-form-item>
 
-        <el-form-item :label="$t('datasource.user_name')" prop="configuration.username">
+        <el-form-item :label="$t('datasource.user_name')"  >
           <el-input v-model="form.configuration.username" autocomplete="off" />
         </el-form-item>
-        <el-form-item :label="$t('datasource.password')" prop="configuration.password">
+        <el-form-item :label="$t('datasource.password')"  >
           <el-input v-model="form.configuration.password" autocomplete="off" show-password />
         </el-form-item>
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.port')" prop="configuration.port">
@@ -147,11 +147,14 @@ export default {
         'configuration.acquireIncrement': [{ required: true, message: this.$t('datasource.please_input_acquire_increment'), trigger: 'change' }],
         'configuration.connectTimeout': [{ required: true, message: this.$t('datasource.please_input_connect_timeout'), trigger: 'change' }]
       },
-      allTypes: [{ name: 'mysql', label: 'MySQL', type: 'jdbc' },
+      allTypes: [
+        { name: 'mysql', label: 'MySQL', type: 'jdbc'},
         { name: 'oracle', label: 'Oracle', type: 'jdbc' },
         { name: 'sqlServer', label: 'SQL Server', type: 'jdbc' },
         { name: 'pg', label: 'PostgreSQL', type: 'jdbc' },
-        { name: 'es', label: 'Elasticsearch', type: 'es' }],
+        { name: 'es', label: 'Elasticsearch', type: 'es' },
+        { name: 'ck', label: 'ClickHouse', type: 'jdbc' }
+        ],
       schemas: [],
       canEdit: false,
       originConfiguration: {}
@@ -203,6 +206,14 @@ export default {
       this.$refs.dsForm.resetFields()
     },
     save() {
+      if(this.form.type !== 'es' && !this.form.configuration.username){
+          this.$message.error(this.$t('datasource.please_input_user_name'))
+          return
+      }
+      if(this.form.type !== 'es' && !this.form.configuration.username){
+          this.$message.error(this.$t('datasource.please_input_password'))
+          return
+      }
       if (!this.form.configuration.schema && (this.form.type === 'oracle' || this.form.type === 'sqlServer')) {
         this.$message.error(this.$t('datasource.please_choose_schema'))
         return

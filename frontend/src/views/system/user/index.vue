@@ -14,7 +14,7 @@
         <el-button v-permission="['user:add']" icon="el-icon-circle-plus-outline" @click="create">{{ $t('user.create') }}</el-button>
 
         <!-- <el-button v-permission="['user:import']" icon="el-icon-download" @click="importLdap">{{ $t('user.import_ldap') }}</el-button> -->
-        <el-button v-if="openLdap" v-permission="['user:import']" icon="el-icon-download" @click="importLdap">{{ $t('user.import_ldap') }}</el-button>
+        <!-- <el-button v-if="openLdap" v-permission="['user:import']" icon="el-icon-download" @click="importLdap">{{ $t('user.import_ldap') }}</el-button> -->
       </template>
 
       <el-table-column prop="username" label="ID" />
@@ -22,7 +22,7 @@
       <!-- <el-table-column prop="gender" :label="$t('commons.gender')" width="60" /> -->
       <el-table-column prop="from" :label="$t('user.source')" width="80">
         <template slot-scope="scope">
-          <div>{{ scope.row.from === 0 ? 'LOCAL' : 'LDAP' }}</div>
+          <div>{{ scope.row.from === 0 ? 'LOCAL' : scope.row.from === 1 ? 'LDAP' : 'OIDC' }}</div>
         </template>
       </el-table-column>
 

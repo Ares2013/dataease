@@ -24,6 +24,7 @@
       :out-style="config.style"
       :style="getComponentStyleDefault(config.style)"
       :prop-value="config.propValue"
+      :is-edit="false"
       :element="config"
       :search-count="searchCount"
     />
@@ -127,7 +128,7 @@ export default {
   box-shadow:0px 0px 7px #0a7be0;
 }
 .gap_class{
-  padding:3px;
+  padding:5px;
 }
 .component-custom {
   outline: none;

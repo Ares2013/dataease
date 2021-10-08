@@ -130,6 +130,8 @@ export default {
     re_login: 'Login again'
   },
   commons: {
+    search: 'Search',
+    folder: 'Folder',
     no_target_permission: 'No permission',
     success: 'Success',
     switch_lang: 'Switch Language Success',
@@ -393,6 +395,10 @@ export default {
     cancel: 'Cancel',
     confirm: 'Confirm'
   },
+  detabs: {
+    eidttitle: 'Edit Title',
+    selectview: 'Select View'
+  },
   example: {
     warning: 'Creating and editing pages cannot be cached by keep-alive because keep-alive include does not currently support caching based on routes, so it is currently cached based on component name. If you want to achieve a similar caching effect, you can use a browser caching scheme such as localStorage. Or do not use keep-alive include to cache all pages directly. See details'
   },
@@ -430,6 +436,11 @@ export default {
     tagsView: 'Open Tags-View',
     fixedHeader: 'Fixed Header',
     sidebarLogo: 'Sidebar Logo'
+  },
+  sysParams: {
+    display: 'Display Setting',
+    ldap: 'LDAP Setting',
+    oidc: 'OIDC Setting'
   },
   license: {
     i18n_no_license_record: 'No License Record',
@@ -497,6 +508,47 @@ export default {
     confirm_passwd: 'Confirm Password',
     change_password: 'Change Password',
     search_by_name: 'Search by name'
+  },
+  ldap: {
+    url: 'LDAP url',
+    dn: 'LDAP DN',
+    password: 'Password',
+    ou: 'OU',
+    filter: 'filter',
+    mapping: 'LDAP mapping',
+    open: 'Enable LDAP Authentication',
+    input_url: 'Please key LDAP url',
+    input_dn: 'Please key DN',
+    input_password: 'Please key password',
+    input_ou: 'Please key OU',
+    input_filter: 'Please key filter',
+    input_mapping: 'Please key LDAP mapping',
+    input_username: 'Please key username',
+    input_url_placeholder: 'Please key url (like ldap://localhost:389)',
+    input_ou_placeholder: 'Please key OU ',
+    input_filter_placeholder: 'Please key filter',
+    input_mapping_placeholder: 'like：{"userName":"uid","nickName":"cn","email":"mail"}',
+    test_connect: 'Test connect',
+    edit: 'Edit',
+    login_success: 'Login success',
+    url_cannot_be_empty: 'LDAP url can not be empty',
+    dn_cannot_be_empty: 'LDAP DN can not be empty',
+    ou_cannot_be_empty: 'LDAP OU can not be empty',
+    filter_cannot_be_empty: 'LDAP filter can not be empty',
+    mapping_cannot_be_empty: 'LDAP mapping can not be empty',
+    password_cannot_be_empty: 'LDAP password can not be empty',
+    import_ldap: 'Import LDAP User'
+  },
+  oidc: {
+    auth_endpoint: 'Please key AuthEndpoint',
+    token_endpoint: 'Please key TokenEndpoint',
+    userinfo_endpoint: 'Please key UserinfoEndpoint',
+    logout_endpoint: 'Please key logoutEndpoint',
+    clientId: 'Please key ClientId',
+    secret: 'Please key Secret',
+    scope: 'Please key scope',
+    redirectUrl: 'Please key redirectUrl',
+    open: 'Enable OIDC Authentication'
   },
   role: {
     menu_authorization: 'Menu Authorization',
@@ -875,7 +927,8 @@ export default {
     liquid_shape_diamond: 'Diamond',
     liquid_shape_triangle: 'Triangle',
     liquid_shape_pin: 'Pin',
-    liquid_shape_rect: 'Rect'
+    liquid_shape_rect: 'Rect',
+    dimension_or_quota: 'Dimension Or Quota'
   },
   dataset: {
     sheet_warn: 'There are multiple sheet pages, and the first one is extracted by default',
@@ -1061,6 +1114,8 @@ export default {
     password: 'Password',
     host: 'Host name / IP address',
     port: 'Port',
+    datasource_url: 'URL address',
+    please_input_datasource_url: 'Please enter Elasticsearch 地址，e.g: http://es_host:es_port',
     please_input_data_base: 'Please enter the database name',
     please_input_user_name: 'Please enter user name',
     please_input_password: 'Please enter Password',
@@ -1149,6 +1204,8 @@ export default {
     gap: 'Gap',
     no_gap: 'No Gap',
     component_gap: 'Component Gap',
+    refresh_time: 'Refresh Time',
+    minute: 'minute',
     photo: 'Photo',
     default_panel: 'Default Dashboard',
     create_public_links: 'Create public links',
